@@ -2,7 +2,7 @@
 
 Tournament match scheduling via constraint programming. Competition layer (what to play) + scheduling layer (when/where). Use as a library or HTTP API.
 
-**Tech stack:** Python 3.x, [OR-Tools](https://developers.google.com/optimization) CP-SAT, [FastAPI](https://fastapi.tiangolo.com/), Pydantic.
+**Tech stack:** Python, [OR-Tools](https://developers.google.com/optimization) CP-SAT, [FastAPI](https://fastapi.tiangolo.com/), Pydantic.
 
 ---
 
@@ -27,15 +27,3 @@ print(result.status.value, result.assignments)
 ```
 
 ---
-
-## API endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| **GET** | `/health` | Health check. Returns `{ "status": "healthy", "version": "..." }`. |
-| **POST** | `/schedule` | Solve. Body: `ScheduleRequest` (config, players, matches, optional previousAssignments, solverOptions). Returns `ScheduleResponse` (status, assignments, softViolations, infeasibleReasons, …). |
-| **POST** | `/validate` | Validate request only. Same body as `/schedule`. Returns `{ "valid": bool, "errors": [...], "summary": {...} }`. |
-| **GET** | `/docs` | Swagger UI. |
-| **GET** | `/redoc` | ReDoc. |
-
-Base URL when running locally: `http://localhost:8000`.

@@ -1,0 +1,142 @@
+import { useState, type FormEvent } from 'react';
+import type { RosterImportDTO } from '../../api/dto';
+
+interface RosterImportDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onImport: (data: RosterImportDTO) => Promise<void>;
+}
+
+export function RosterImportDialog({ isOpen, onClose, onImport }: RosterImportDialogProps) {
+  const [csvContent, setCsvContent] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showFormatGuide, setShowFormatGuide] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!csvContent.trim()) {
+      setError('CSV content is required');
+      return;
+    }
+
+    try {
+      setImporting(true);
+      setError(null);
+      await onImport({ csv: csvContent });
+      setCsvContent('');
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to import roster');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Import Roster from CSV</h3>
+          <button
+            type="button"
+            onClick={() => setShowFormatGuide(!showFormatGuide)}
+            className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+          >
+            {showFormatGuide ? 'Hide' : 'Show'} Format Guide
+          </button>
+        </div>
+
+        {showFormatGuide && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+            <h4 className="font-semibold text-blue-900 mb-2">CSV Format Guide</h4>
+            <div className="space-y-2 text-blue-800">
+            <p><strong>Two Formats Supported:</strong></p>
+            
+            <p className="mt-2 font-semibold">1. Flat Format:</p>
+            <code className="block bg-white p-2 rounded font-mono text-xs">
+              id,name,minRestMinutes,notes,availability
+            </code>
+            
+            <p className="mt-2 font-semibold">2. Hierarchical Format:</p>
+            <code className="block bg-white p-2 rounded font-mono text-xs">
+              groupPath,id,name,minRestMinutes,notes,availability
+            </code>
+            <p className="ml-2 text-xs">groupPath format: <code className="bg-white px-1 rounded">parent:child</code> or <code className="bg-white px-1 rounded">division:team</code></p>
+            
+            <p className="mt-3"><strong>Fields:</strong></p>
+            <ul className="list-disc list-inside space-y-1 ml-2 text-xs">
+              <li><strong>groupPath</strong> (hierarchical only): Group hierarchy path like "Men's Division:Team Alpha"</li>
+              <li><strong>id</strong> (required): Unique player identifier</li>
+              <li><strong>name</strong> (required): Player's full name</li>
+              <li><strong>minRestMinutes</strong> (optional, default: 30): Minimum rest time</li>
+              <li><strong>notes</strong> (optional): Additional notes</li>
+              <li><strong>availability</strong> (optional): Time windows (HH:mm-HH:mm;HH:mm-HH:mm)</li>
+            </ul>
+
+            <p className="mt-3"><strong>Examples:</strong></p>
+            <div className="bg-white p-2 rounded font-mono text-xs space-y-1">
+              <div className="text-gray-600"># Flat format:</div>
+              <div>player1,John Doe,30,Team captain,09:00-12:00;14:00-18:00</div>
+              <div className="text-gray-600 mt-2"># Hierarchical format:</div>
+              <div>Men's Division:Team Alpha,player1,John Doe,30</div>
+              <div>Men's Division:Team Beta,player2,Jane Smith,45</div>
+              <div>Women's Division:Team Gamma,player3,Bob Johnson,30</div>
+            </div>
+
+              <p className="mt-3 text-xs text-blue-700">
+                <strong>Note:</strong> After importing, you can edit individual players to add/modify availability windows and other details.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              CSV Content
+            </label>
+            <textarea
+              value={csvContent}
+              onChange={(e) => setCsvContent(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+              rows={12}
+              placeholder="player1,John Doe,30,Team captain,09:00-12:00;14:00-18:00&#10;player2,Jane Smith,45,Injured knee,10:00-16:00&#10;player3,Bob Johnson,30,,&#10;player4,Alice Brown,60,Senior player"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Format: id,name,minRestMinutes,notes,availability
+            </p>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              disabled={importing}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={importing}
+              className={`px-4 py-2 rounded-md text-white ${
+                importing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              {importing ? 'Importing...' : 'Import'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

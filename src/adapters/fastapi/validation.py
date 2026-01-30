@@ -1,7 +1,7 @@
 """Request validation logic for FastAPI adapter."""
 from typing import List
 
-from app.schemas import ScheduleRequest
+from src.app.schemas import ScheduleRequest
 
 
 def validate_request(request: ScheduleRequest) -> dict:

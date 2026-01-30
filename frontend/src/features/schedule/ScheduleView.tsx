@@ -1,0 +1,122 @@
+import { useRoster } from '../../hooks/useRoster';
+import { useMatches } from '../../hooks/useMatches';
+import type { ScheduleDTO, TournamentConfig, ScheduleView as ViewType } from '../../api/dto';
+import { formatSlotRange } from '../../lib/time';
+
+interface ScheduleViewProps {
+  schedule: ScheduleDTO;
+  view: ViewType;
+  config: TournamentConfig;
+}
+
+export function ScheduleView({ schedule, view, config }: ScheduleViewProps) {
+  const { players } = useRoster();
+  const { matches } = useMatches();
+
+  const getPlayerName = (playerId: string): string => {
+    const player = players.find((p) => p.id === playerId);
+    return player?.name || playerId;
+  };
+
+  const getMatch = (matchId: string) => {
+    return matches.find((m) => m.id === matchId);
+  };
+
+  const formatMatchLine = (assignment: typeof schedule.assignments[0]): string => {
+    const match = getMatch(assignment.matchId);
+    if (!match) return `Match ${assignment.matchId}`;
+
+    const sideANames = match.sideA.map(getPlayerName).join(', ');
+    const sideBNames = match.sideB.map(getPlayerName).join(', ');
+    return `Court ${assignment.courtId} — ${match.eventCode}: ${sideANames} vs ${sideBNames}`;
+  };
+
+  if (view === 'timeslot') {
+    // Group by time slot
+    const bySlot = new Map<number, typeof schedule.assignments>();
+    schedule.assignments.forEach((assignment) => {
+      if (!bySlot.has(assignment.slotId)) {
+        bySlot.set(assignment.slotId, []);
+      }
+      bySlot.get(assignment.slotId)!.push(assignment);
+    });
+
+    const slots = Array.from(bySlot.keys()).sort((a, b) => a - b);
+
+    return (
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="divide-y divide-gray-200">
+          {slots.map((slotId) => {
+            const slotAssignments = bySlot.get(slotId)!;
+            const firstAssignment = slotAssignments[0];
+            const timeRange = formatSlotRange(
+              slotId,
+              firstAssignment.durationSlots,
+              config.dayStart,
+              config.intervalMinutes
+            );
+
+            return (
+              <div key={slotId} className="p-4">
+                <h3 className="font-semibold text-lg mb-2">{timeRange}</h3>
+                <div className="space-y-1">
+                  {slotAssignments
+                    .sort((a, b) => a.courtId - b.courtId)
+                    .slice(0, config.courtCount)
+                    .map((assignment) => (
+                      <div key={`${assignment.matchId}-${assignment.courtId}`} className="text-sm text-gray-700">
+                        {formatMatchLine(assignment)}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  } else {
+    // Group by court
+    const byCourt = new Map<number, typeof schedule.assignments>();
+    schedule.assignments.forEach((assignment) => {
+      if (!byCourt.has(assignment.courtId)) {
+        byCourt.set(assignment.courtId, []);
+      }
+      byCourt.get(assignment.courtId)!.push(assignment);
+    });
+
+    const courts = Array.from(byCourt.keys()).sort((a, b) => a - b);
+
+    return (
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="divide-y divide-gray-200">
+          {courts.map((courtId) => {
+            const courtAssignments = byCourt.get(courtId)!.sort((a, b) => a.slotId - b.slotId);
+
+            return (
+              <div key={courtId} className="p-4">
+                <h3 className="font-semibold text-lg mb-2">Court {courtId}</h3>
+                <div className="space-y-2">
+                  {courtAssignments.map((assignment) => {
+                    const timeRange = formatSlotRange(
+                      assignment.slotId,
+                      assignment.durationSlots,
+                      config.dayStart,
+                      config.intervalMinutes
+                    );
+                    return (
+                      <div key={`${assignment.matchId}-${assignment.slotId}`} className="text-sm">
+                        <div className="font-medium text-gray-900">{timeRange}</div>
+                        <div className="text-gray-700">{formatMatchLine(assignment)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+}

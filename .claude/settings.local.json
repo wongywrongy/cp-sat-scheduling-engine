@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker-compose config:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(curl:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(python test_workflow.py:*)",
+      "Bash(npx tsc:*)",
+      "Bash(xargs cat:*)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(timeout 3 tail:*)",
+      "Bash(pip install:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(docker --version:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker exec:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nUI overhaul: event-based colors, compact layout, no emojis\n\n- Timeline grid dots now colored by event type \\(MS/WS/MD/WD/XD\\)\n- Added detailed hover tooltips showing match info\n- Removed redundant ScheduleDiagnosticsBar\n- Compact constraints panel with inline status/counts\n- Removed all emojis from UI, replaced with colored dots\n- Unified light theme across all schedule components\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

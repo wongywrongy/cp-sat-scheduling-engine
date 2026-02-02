@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTournament } from '../hooks/useTournament';
 import { TournamentConfigForm } from '../features/tournaments/TournamentConfigForm';
+import { TournamentFileManagement } from '../features/tournaments/TournamentFileManagement';
 import type { TournamentConfig } from '../api/dto';
 
 export function TournamentSetupPage() {
@@ -29,6 +30,7 @@ export function TournamentSetupPage() {
     courtCount: 4,
     defaultRestMinutes: 30,
     freezeHorizonSlots: 0,
+    rankCounts: { MS: 3, WS: 3, MD: 2, WD: 2, XD: 2 },
   };
 
   const displayConfig = config || defaultConfig;
@@ -70,6 +72,10 @@ export function TournamentSetupPage() {
         onSave={handleSave}
         saving={saving}
       />
+
+      <div className="mt-6">
+        <TournamentFileManagement />
+      </div>
     </div>
   );
 }

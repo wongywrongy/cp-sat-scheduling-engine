@@ -1,83 +1,37 @@
-import { useState, useEffect } from 'react';
-import { useTournament } from './useTournament';
-import apiClient from '../api/client';
+/**
+ * Roster groups hook - uses Zustand store (no API calls)
+ */
+import { useAppStore } from '../store/appStore';
 import type { RosterGroupDTO } from '../api/dto';
 
 export function useRosterGroups() {
-  const { tournamentId } = useTournament();
-  const [groups, setGroups] = useState<RosterGroupDTO[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (tournamentId) {
-      loadGroups();
-    }
-  }, [tournamentId]);
-
-  const loadGroups = async () => {
-    if (!tournamentId) return;
-    
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiClient.getGroups(tournamentId);
-      setGroups(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load groups');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const groups = useAppStore((state) => state.groups);
+  const addGroup = useAppStore((state) => state.addGroup);
+  const updateGroupStore = useAppStore((state) => state.updateGroup);
+  const deleteGroupStore = useAppStore((state) => state.deleteGroup);
 
   const createGroup = async (group: RosterGroupDTO): Promise<RosterGroupDTO> => {
-    if (!tournamentId) throw new Error('No tournament selected');
-    
-    try {
-      const created = await apiClient.createGroup(tournamentId, group);
-      setGroups([...groups, created]);
-      return created;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create group';
-      setError(message);
-      throw err;
-    }
+    addGroup(group);
+    return group;
   };
 
   const updateGroup = async (groupId: string, updates: Partial<RosterGroupDTO>): Promise<RosterGroupDTO> => {
-    if (!tournamentId) throw new Error('No tournament selected');
-    
-    try {
-      const updated = await apiClient.updateGroup(tournamentId, groupId, updates);
-      setGroups(groups.map(g => g.id === groupId ? updated : g));
-      return updated;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update group';
-      setError(message);
-      throw err;
-    }
+    updateGroupStore(groupId, updates);
+    const updated = groups.find(g => g.id === groupId);
+    return updated!;
   };
 
   const deleteGroup = async (groupId: string): Promise<void> => {
-    if (!tournamentId) throw new Error('No tournament selected');
-    
-    try {
-      await apiClient.deleteGroup(tournamentId, groupId);
-      setGroups(groups.filter(g => g.id !== groupId));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete group';
-      setError(message);
-      throw err;
-    }
+    deleteGroupStore(groupId);
   };
 
   return {
     groups,
-    loading,
-    error,
+    loading: false,
+    error: null,
     createGroup,
     updateGroup,
     deleteGroup,
-    refresh: loadGroups,
+    refresh: () => {}, // No-op for local state
   };
 }

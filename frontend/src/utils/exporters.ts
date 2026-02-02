@@ -21,12 +21,12 @@ export function exportScheduleToCSV(response: ScheduleResponse, matches: any[], 
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
-  const headers = ['Match ID', 'Event Code', 'Slot', 'Start Time', 'Court', 'Duration (Slots)'];
+  const headers = ['Match ID', 'Event Rank', 'Slot', 'Start Time', 'Court', 'Duration (Slots)'];
   const rows = response.assignments.map((assignment) => {
     const match = matches.find((m) => m.id === assignment.matchId);
     return [
       assignment.matchId,
-      match?.eventCode || assignment.matchId,
+      match?.eventRank || assignment.matchId,
       assignment.slotId.toString(),
       formatTime(assignment.slotId),
       assignment.courtId.toString(),

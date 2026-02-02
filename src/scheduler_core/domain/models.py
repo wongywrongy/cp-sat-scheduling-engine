@@ -58,13 +58,15 @@ class ScheduleConfig:
     default_rest_slots: int = 1
     freeze_horizon_slots: int = 0
     current_slot: int = 0
-    
+
     # Objective weights
     soft_rest_enabled: bool = False
     rest_slack_penalty: float = 10.0
     disruption_penalty: float = 1.0
     late_finish_penalty: float = 0.5
     court_change_penalty: float = 0.5
+    enable_court_utilization: bool = True
+    court_utilization_penalty: float = 50.0
 
 
 @dataclass

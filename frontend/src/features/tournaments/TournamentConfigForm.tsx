@@ -10,10 +10,16 @@ interface TournamentConfigFormProps {
 }
 
 export function TournamentConfigForm({ config, onSave, saving }: TournamentConfigFormProps) {
-  const [formData, setFormData] = useState<TournamentConfig>(config);
+  const [formData, setFormData] = useState<TournamentConfig>({
+    ...config,
+    rankCounts: config.rankCounts || { MS: 3, WS: 3, MD: 2, WD: 2, XD: 2 },
+    enableCourtUtilization: config.enableCourtUtilization ?? true,
+    courtUtilizationPenalty: config.courtUtilizationPenalty ?? 50.0
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [breakWindows, setBreakWindows] = useState<BreakWindow[]>(config.breaks || []);
   const [showGuide, setShowGuide] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -138,6 +144,21 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tournament Date
+          </label>
+          <input
+            type="date"
+            value={formData.tournamentDate || ''}
+            onChange={(e) => setFormData({ ...formData, tournamentDate: e.target.value })}
+            className="w-full px-3 py-2 border rounded-md border-gray-300"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Optional: Date of the tournament for time-based features
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Court Count
           </label>
           <input
@@ -185,6 +206,99 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
             Slots from current time that won't be rescheduled (0 = full flexibility)
           </p>
           {errors.freezeHorizonSlots && <p className="text-red-500 text-sm mt-1">{errors.freezeHorizonSlots}</p>}
+        </div>
+
+        {/* Advanced Optimization Settings */}
+        <div className="border-t border-gray-200 pt-4">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 mb-3"
+          >
+            <span className={`transform transition-transform ${showAdvanced ? 'rotate-90' : ''}`}>▶</span>
+            Advanced Optimization Settings
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-4 pl-4 border-l-2 border-blue-200">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="enableCourtUtilization"
+                  checked={formData.enableCourtUtilization ?? true}
+                  onChange={(e) => setFormData({ ...formData, enableCourtUtilization: e.target.checked })}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <label htmlFor="enableCourtUtilization" className="text-sm font-medium text-gray-700 cursor-pointer">
+                    Maximize Court Utilization
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Minimize idle court time to keep all courts active throughout the tournament. This reduces gaps and straggling matches.
+                  </p>
+                </div>
+              </div>
+
+              {formData.enableCourtUtilization && (
+                <div className="ml-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Utilization Weight
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.courtUtilizationPenalty ?? 50.0}
+                    onChange={(e) => setFormData({ ...formData, courtUtilizationPenalty: parseFloat(e.target.value) || 50.0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    min="0"
+                    step="10"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Higher values prioritize court utilization more strongly. Default: 50
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Rank Counts (per school)
+          </label>
+          <p className="text-xs text-gray-500 mb-3">
+            Specify how many of each rank/event type each school will have
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 border border-gray-300 rounded-md bg-gray-50">
+            {[
+              { key: 'MS', label: 'Men\'s Singles (MS)' },
+              { key: 'WS', label: 'Women\'s Singles (WS)' },
+              { key: 'MD', label: 'Men\'s Doubles (MD)' },
+              { key: 'WD', label: 'Women\'s Doubles (WD)' },
+              { key: 'XD', label: 'Mixed Doubles (XD)' },
+            ].map((rank) => (
+              <div key={rank.key}>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  {rank.label}
+                </label>
+                <input
+                  type="number"
+                  value={formData.rankCounts?.[rank.key] || 0}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    rankCounts: {
+                      ...formData.rankCounts,
+                      [rank.key]: parseInt(e.target.value) || 0
+                    }
+                  })}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+                  min="0"
+                />
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            <strong>Example:</strong> MS: 3 means each school has 3 Men's Singles ranks (MS1, MS2, MS3)
+          </p>
         </div>
 
         <div>

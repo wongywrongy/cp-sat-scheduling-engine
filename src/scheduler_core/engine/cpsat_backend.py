@@ -20,7 +20,7 @@ Soft Constraints (with penalties):
 """
 import time as time_module
 from collections import defaultdict
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from ortools.sat.python import cp_model
 
@@ -45,6 +45,67 @@ from scheduler_core._log import (
 from scheduler_core.engine.diagnostics import diagnose_infeasibility, get_player_ids
 from scheduler_core.engine.extraction import extract_solution
 from scheduler_core.engine.variables import create_variables, link_start_to_x
+
+
+class ProgressCallback(cp_model.CpSolverSolutionCallback):
+    """
+    Callback for tracking CP-SAT solver progress.
+
+    Captures intermediate solutions during the solve process and reports
+    progress metrics like objective value, best bound, and elapsed time.
+    Also extracts current assignments to visualize solver progress.
+    """
+
+    def __init__(
+        self,
+        callback_fn: Optional[Callable[[dict], None]] = None,
+        x: Optional[Dict[Tuple[str, int, int], cp_model.IntVar]] = None,
+        matches: Optional[Dict[str, Match]] = None,
+    ):
+        """
+        Initialize progress callback.
+
+        Args:
+            callback_fn: Optional function to call with progress updates.
+                        Receives dict with keys: elapsed_ms, current_objective, best_bound
+            x: Decision variables mapping (match_id, slot, court) -> IntVar
+            matches: Match data for extracting assignment metadata
+        """
+        super().__init__()
+        self.callback_fn = callback_fn
+        self.x = x or {}
+        self.matches = matches or {}
+        self.start_time = time_module.perf_counter()
+        self.solution_count = 0
+
+    def on_solution_callback(self) -> None:
+        """Called by solver when a new solution is found."""
+        self.solution_count += 1
+        elapsed_ms = (time_module.perf_counter() - self.start_time) * 1000
+
+        # Extract current solution assignments
+        current_assignments = []
+        if self.x and self.matches:
+            for (match_id, t, c), var in self.x.items():
+                if self.Value(var) == 1:
+                    match = self.matches.get(match_id)
+                    duration = match.duration_slots if match else 1
+                    current_assignments.append({
+                        'matchId': match_id,
+                        'slotId': t,
+                        'courtId': c,
+                        'durationSlots': duration,
+                    })
+
+        if self.callback_fn:
+            progress_data = {
+                'elapsed_ms': int(elapsed_ms),
+                'current_objective': self.ObjectiveValue(),
+                'best_bound': self.BestObjectiveBound(),
+                'solution_count': self.solution_count,
+                'current_assignments': current_assignments,
+            }
+            self.callback_fn(progress_data)
 
 
 class CPSATScheduler:
@@ -308,50 +369,88 @@ class CPSATScheduler:
     def _build_objective(self) -> None:
         """Build the objective function to minimize."""
         objective_terms = []
-        
+
+        # Court utilization: minimize idle court time
+        if self.config.enable_court_utilization and self.config.court_utilization_penalty > 0:
+            T = self.config.total_slots
+            C = self.config.court_count
+
+            # Create boolean variables to track court occupancy
+            court_occupied = {}
+            for s in range(T):
+                for c in range(1, C + 1):
+                    court_occupied[(s, c)] = self.model.NewBoolVar(f"court_occupied_{s}_{c}")
+
+                    # Collect all matches that could occupy this court at this slot
+                    occupying_vars = []
+                    for match_id, match in self.matches.items():
+                        d = match.duration_slots
+                        # A match starting at time t occupies slots [t, t+d)
+                        # So slot s is occupied if match starts at any t in [s-d+1, s]
+                        for t in range(max(0, s - d + 1), s + 1):
+                            if (match_id, t, c) in self.x:
+                                occupying_vars.append(self.x[(match_id, t, c)])
+
+                    # Court is occupied if any match is scheduled on it at this slot
+                    if occupying_vars:
+                        # court_occupied = OR(all occupying vars)
+                        # In CP-SAT: court_occupied >= each var, and court_occupied <= sum(vars)
+                        for var in occupying_vars:
+                            self.model.Add(court_occupied[(s, c)] >= var)
+                        self.model.Add(court_occupied[(s, c)] <= sum(occupying_vars))
+
+            # Count idle court-slots (total possible - occupied)
+            total_court_slots = T * C
+            occupied_count = sum(court_occupied.values())
+            idle_slots = self.model.NewIntVar(0, total_court_slots, "idle_court_slots")
+            self.model.Add(idle_slots == total_court_slots - occupied_count)
+
+            # Penalize idle time
+            objective_terms.append(int(self.config.court_utilization_penalty * 10) * idle_slots)
+
         # Rest slack penalties
         if self.config.soft_rest_enabled:
             for (player_id, m_i, m_j), slack in self.rest_slack.items():
                 player = self.players.get(player_id)
                 penalty = player.rest_penalty if player else self.config.rest_slack_penalty
                 objective_terms.append(int(penalty * 10) * slack)
-        
+
         # Disruption penalty
         if self.previous_assignments and self.config.disruption_penalty > 0:
             for match_id, prev in self.previous_assignments.items():
                 if match_id not in self.matches or match_id in self.locked_matches:
                     continue
-                
+
                 prev_start = prev.slot_id
                 diff_pos = self.model.NewIntVar(0, self.config.total_slots, f"diff_pos_{match_id}")
                 diff_neg = self.model.NewIntVar(0, self.config.total_slots, f"diff_neg_{match_id}")
-                
+
                 self.model.Add(self.start_slot[match_id] - prev_start == diff_pos - diff_neg)
                 objective_terms.append(int(self.config.disruption_penalty * 10) * (diff_pos + diff_neg))
-                
+
                 if self.config.court_change_penalty > 0:
                     prev_court = prev.court_id
                     court_changed = self.model.NewBoolVar(f"court_changed_{match_id}")
-                    
+
                     match = self.matches[match_id]
                     d = match.duration_slots
                     same_court_vars = []
-                    
+
                     for t in range(self.config.total_slots - d + 1):
                         if (match_id, t, prev_court) in self.x:
                             same_court_vars.append(self.x[(match_id, t, prev_court)])
-                    
+
                     if same_court_vars:
                         self.model.Add(sum(same_court_vars) + court_changed == 1)
                         objective_terms.append(int(self.config.court_change_penalty * 10) * court_changed)
-        
+
         # Late finish penalty
         if self.config.late_finish_penalty > 0:
             for match_id in self.matches:
                 if match_id in self.locked_matches:
                     continue
                 objective_terms.append(int(self.config.late_finish_penalty * 10) * self.start_slot[match_id])
-        
+
         if objective_terms:
             self.model.Minimize(sum(objective_terms))
     
@@ -375,8 +474,17 @@ class CPSATScheduler:
         self._build_objective()
         log_build_end(len(self.matches))
 
-    def solve(self) -> ScheduleResult:
-        """Solve the model and return results."""
+    def solve(self, progress_callback: Optional[Callable[[dict], None]] = None) -> ScheduleResult:
+        """
+        Solve the model and return results.
+
+        Args:
+            progress_callback: Optional function to receive progress updates during solving.
+                              Called with dict containing elapsed_ms, current_objective, best_bound.
+
+        Returns:
+            ScheduleResult with status, assignments, and metrics.
+        """
         start_time = time_module.perf_counter()
         log_solve_start()
 
@@ -396,7 +504,16 @@ class CPSATScheduler:
         solver.parameters.num_search_workers = self.solver_options.num_workers
         solver.parameters.log_search_progress = self.solver_options.log_progress
 
-        status = solver.Solve(self.model)
+        # Use solution callback if progress tracking is requested
+        if progress_callback:
+            callback = ProgressCallback(
+                callback_fn=progress_callback,
+                x=self.x,
+                matches=self.matches,
+            )
+            status = solver.Solve(self.model, callback)
+        else:
+            status = solver.Solve(self.model)
         runtime_ms = (time_module.perf_counter() - start_time) * 1000
 
         status_map = {

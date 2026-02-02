@@ -63,7 +63,11 @@ export function RosterList({ players, onEdit, onDelete }: RosterListProps) {
                 )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {player.minRestMinutes}
+                {player.minRestMinutes !== null && player.minRestMinutes !== undefined ? (
+                  player.minRestMinutes
+                ) : (
+                  <span className="text-gray-400 italic">Uses default</span>
+                )}
               </td>
               <td className="px-6 py-4 text-sm text-gray-500">
                 {player.notes || '-'}

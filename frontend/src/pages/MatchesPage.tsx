@@ -3,16 +3,16 @@ import { useMatches } from '../hooks/useMatches';
 import { MatchesList } from '../features/matches/MatchesList';
 import { MatchForm } from '../features/matches/MatchForm';
 import { VisualMatchGenerator } from '../features/matches/VisualMatchGenerator';
-import { MatchesImportDialog } from '../features/matches/MatchesImportDialog';
+import { MatchBulkActionsToolbar } from '../features/matches/MatchBulkActionsToolbar';
 import type { MatchDTO } from '../api/dto';
 
 export function MatchesPage() {
-  const { matches, loading, error, createMatch, updateMatch, deleteMatch, importMatches } = useMatches();
+  const { matches, loading, error, createMatch, updateMatch, deleteMatch } = useMatches();
   const [showForm, setShowForm] = useState(false);
   const [showVisualGenerator, setShowVisualGenerator] = useState(false);
   const [matchType, setMatchType] = useState<'dual' | 'tri'>('dual');
-  const [showImport, setShowImport] = useState(false);
   const [editingMatch, setEditingMatch] = useState<MatchDTO | null>(null);
+  const [selectedMatchIds, setSelectedMatchIds] = useState<string[]>([]);
 
   const handleEdit = (match: MatchDTO) => {
     setEditingMatch(match);
@@ -60,17 +60,29 @@ export function MatchesPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    const count = selectedMatchIds.length;
+    if (window.confirm(`Are you sure you want to delete ${count} match${count !== 1 ? 'es' : ''}?`)) {
+      try {
+        for (const matchId of selectedMatchIds) {
+          await deleteMatch(matchId);
+        }
+        setSelectedMatchIds([]);
+      } catch (err) {
+        // Error handled by hook
+      }
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedMatchIds([]);
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Matches</h2>
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowImport(true)}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-          >
-            Import CSV
-          </button>
           <button
             onClick={() => {
               setMatchType('dual');
@@ -93,7 +105,7 @@ export function MatchesPage() {
             onClick={handleAddMatch}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            Add Match
+            Add Match Manually
           </button>
         </div>
       </div>
@@ -133,16 +145,15 @@ export function MatchesPage() {
           matches={matches}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onSelectionChange={setSelectedMatchIds}
         />
       )}
 
-      {showImport && (
-        <MatchesImportDialog
-          isOpen={showImport}
-          onClose={() => setShowImport(false)}
-          onImport={importMatches}
-        />
-      )}
+      <MatchBulkActionsToolbar
+        selectedCount={selectedMatchIds.length}
+        onBulkDelete={handleBulkDelete}
+        onClearSelection={handleClearSelection}
+      />
     </div>
   );
 }

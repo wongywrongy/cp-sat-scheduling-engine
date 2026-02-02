@@ -1,5 +1,5 @@
-import { useRoster } from '../../hooks/useRoster';
 import { useMatches } from '../../hooks/useMatches';
+import { usePlayerNames } from '../../hooks/usePlayerNames';
 import type { ScheduleDTO, TournamentConfig, ScheduleView as ViewType } from '../../api/dto';
 import { formatSlotRange } from '../../lib/time';
 
@@ -10,13 +10,8 @@ interface ScheduleViewProps {
 }
 
 export function ScheduleView({ schedule, view, config }: ScheduleViewProps) {
-  const { players } = useRoster();
   const { matches } = useMatches();
-
-  const getPlayerName = (playerId: string): string => {
-    const player = players.find((p) => p.id === playerId);
-    return player?.name || playerId;
-  };
+  const { getPlayerName } = usePlayerNames();
 
   const getMatch = (matchId: string) => {
     return matches.find((m) => m.id === matchId);
@@ -28,7 +23,7 @@ export function ScheduleView({ schedule, view, config }: ScheduleViewProps) {
 
     const sideANames = match.sideA.map(getPlayerName).join(', ');
     const sideBNames = match.sideB.map(getPlayerName).join(', ');
-    return `Court ${assignment.courtId} — ${match.eventCode}: ${sideANames} vs ${sideBNames}`;
+    return `Court ${assignment.courtId} — ${match.eventRank || 'Match'}: ${sideANames} vs ${sideBNames}`;
   };
 
   if (view === 'timeslot') {

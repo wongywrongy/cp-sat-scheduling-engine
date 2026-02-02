@@ -42,26 +42,12 @@ from scheduler_core.engine import (
     handle_no_show,
     handle_court_outage,
 )
-from scheduler_core.competition import (
-    CompetitionGraph,
-    FormatPlugin,
-    GenerationPolicy,
-    BracketGenerationPolicy,
-    PoolGenerationPolicy,
-    AdvancementPolicy,
-    KnockoutAdvancementPolicy,
-    SwissAdvancementPolicy,
-    LadderAdvancementPolicy,
-)
-from scheduler_core.plugins import ConstraintPlugin, ObjectivePlugin
-from scheduler_core.domain.tournament import (
-    Event,
-    Participant,
-    PlayUnit,
-    Result,
-    TournamentState,
-    WinnerSide,
-)
+# Advanced tournament features (competition, plugins, tournament) are commented out
+# because these modules don't exist or aren't needed for the stateless backend.
+#
+# from scheduler_core.competition import (...)  # Module doesn't exist
+# from scheduler_core.plugins import (...)  # Not needed for stateless
+# from scheduler_core.domain.tournament import (...)  # Not needed for stateless
 
 __all__ = [
     "schedule",
@@ -95,21 +81,5 @@ __all__ = [
     "handle_overrun",
     "handle_no_show",
     "handle_court_outage",
-    "CompetitionGraph",
-    "FormatPlugin",
-    "GenerationPolicy",
-    "BracketGenerationPolicy",
-    "PoolGenerationPolicy",
-    "AdvancementPolicy",
-    "KnockoutAdvancementPolicy",
-    "SwissAdvancementPolicy",
-    "LadderAdvancementPolicy",
-    "ConstraintPlugin",
-    "ObjectivePlugin",
-    "Event",
-    "Participant",
-    "PlayUnit",
-    "Result",
-    "TournamentState",
-    "WinnerSide",
+    # Advanced tournament features removed (competition, plugins, tournament modules)
 ]

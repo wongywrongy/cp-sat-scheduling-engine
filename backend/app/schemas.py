@@ -27,10 +27,14 @@ class TournamentConfig(BaseModel):
     intervalMinutes: int
     dayStart: str  # HH:mm format
     dayEnd: str  # HH:mm format
+    tournamentDate: Optional[str] = None  # ISO date string: "2026-02-15"
     breaks: List[BreakWindow]
     courtCount: int
     defaultRestMinutes: int
     freezeHorizonSlots: int
+    rankCounts: Dict[str, int] = Field(default_factory=dict)  # {"MS": 3, "WS": 3, "MD": 2, "WD": 4, "XD": 2}
+    enableCourtUtilization: Optional[bool] = True
+    courtUtilizationPenalty: Optional[float] = 50.0
 
 
 # Availability
@@ -48,12 +52,12 @@ class RosterGroupDTO(BaseModel):
 
 # Player
 class PlayerDTO(BaseModel):
-    id: str
+    id: str  # Auto-generated UUID
     name: str
-    groupId: Optional[str] = None  # School group ID
-    rank: Optional[str] = None  # MS1, MS2, WS1, WS2, MD1, WD1, XD1, etc.
+    groupId: str  # School group ID (REQUIRED - this is school vs school scheduling)
+    ranks: List[str] = Field(default_factory=list)  # [MS1, MD1, XD1] - Player can play multiple events
     availability: List[AvailabilityWindow] = Field(default_factory=list)
-    minRestMinutes: int = 30
+    minRestMinutes: Optional[int] = None  # If not provided, uses config.defaultRestMinutes
     notes: Optional[str] = None
 
 
@@ -72,10 +76,6 @@ class MatchDTO(BaseModel):
     durationSlots: int = 1
     preferredCourt: Optional[int] = None
     tags: Optional[List[str]] = None  # Optional tags like ["School A", "School B"]
-
-
-class MatchesImportDTO(BaseModel):
-    csv: str
 
 
 # Schedule

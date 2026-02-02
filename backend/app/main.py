@@ -1,15 +1,11 @@
-"""Main FastAPI application - simplified for school sparring."""
+"""Main FastAPI application - stateless scheduler for school sparring."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base
-from api import tournaments, roster, matches, schedule
-
-# Create database tables
-Base.metadata.create_all(bind=engine)
+from api import schedule, match_state
 
 app = FastAPI(
     title="School Sparring Scheduler API",
-    description="Backend API for school sparring match scheduling",
+    description="Stateless scheduling API for school sparring matches using CP-SAT solver",
     version="2.0.0",
 )
 
@@ -17,6 +13,8 @@ app = FastAPI(
 DEV_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",  # Vite alternate port
+    "http://127.0.0.1:5174",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:4173",  # Vite preview
@@ -32,17 +30,15 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# Register routers
-app.include_router(tournaments.router)
-app.include_router(roster.router)
-app.include_router(matches.router)
+# Register API routers
 app.include_router(schedule.router)
+app.include_router(match_state.router)
 
 # Health check endpoint
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "version": "1.0.0"}
+    return {"status": "healthy", "version": "2.0.0"}
 
 
 if __name__ == "__main__":

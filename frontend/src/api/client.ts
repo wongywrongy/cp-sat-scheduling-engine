@@ -1,20 +1,27 @@
+/**
+ * Stateless API Client
+ * Communicates with the stateless scheduling backend
+ */
 import axios, { type AxiosInstance } from 'axios';
 import type {
   TournamentConfig,
-  TournamentConfigDTO,
-  ScheduleView,
+  PlayerDTO,
+  MatchDTO,
   ScheduleDTO,
   MatchStateDTO,
-  PlayerDTO,
-  RosterGroupDTO,
-  MatchDTO,
-  RosterImportDTO,
-  MatchesImportDTO,
+  SolverProgressEvent,
 } from './dto';
 
 // Use /api proxy in dev, or explicit URL in production
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? '/api' : 'http://localhost:8000');
+
+interface GenerateScheduleRequest {
+  config: TournamentConfig;
+  players: PlayerDTO[];
+  matches: MatchDTO[];
+  previousAssignments?: any[];
+}
 
 class ApiClient {
   private client: AxiosInstance;
@@ -43,136 +50,176 @@ class ApiClient {
     );
   }
 
-  // Tournament Config
-  async getTournamentConfig(tournamentId: string): Promise<TournamentConfig> {
-    const response = await this.client.get<TournamentConfigDTO>(`/tournaments/${tournamentId}/config`);
-    return this.mapConfigFromDTO(response.data);
-  }
-
-  async updateTournamentConfig(tournamentId: string, config: TournamentConfig): Promise<TournamentConfig> {
-    const dto = this.mapConfigToDTO(config);
-    const response = await this.client.put<TournamentConfigDTO>(`/tournaments/${tournamentId}/config`, dto);
-    return this.mapConfigFromDTO(response.data);
-  }
-
-  // Schedule Generation
-  async generateSchedule(tournamentId: string): Promise<ScheduleDTO> {
-    const response = await this.client.post<ScheduleDTO>(`/tournaments/${tournamentId}/schedule/generate`);
+  /**
+   * Generate optimized schedule
+   * This is the only API call - backend is stateless
+   */
+  async generateSchedule(request: GenerateScheduleRequest): Promise<ScheduleDTO> {
+    const response = await this.client.post<ScheduleDTO>('/schedule', request);
     return response.data;
   }
 
-  async reoptimizeSchedule(tournamentId: string): Promise<ScheduleDTO> {
-    const response = await this.client.post<ScheduleDTO>(`/tournaments/${tournamentId}/schedule/reoptimize`);
+  /**
+   * Generate schedule with progress updates via Server-Sent Events
+   */
+  async generateScheduleWithProgress(
+    request: GenerateScheduleRequest,
+    onProgress: (event: SolverProgressEvent) => void
+  ): Promise<ScheduleDTO> {
+    return new Promise((resolve, reject) => {
+      // Use same base URL as axios client - this will use /api proxy in dev
+      const url = `${API_BASE_URL}/schedule/stream`;
+
+      // Use fetch API for SSE streaming (EventSource doesn't support POST)
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const reader = response.body?.getReader();
+          if (!reader) {
+            throw new Error('Response body is not readable');
+          }
+
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+
+            // Process complete SSE messages (delimited by \n\n)
+            const messages = buffer.split('\n\n');
+            buffer = messages.pop() || ''; // Keep incomplete message in buffer
+
+            for (const message of messages) {
+              if (!message.trim()) continue;
+
+              // Parse SSE format: "data: {...}"
+              const dataMatch = message.match(/^data: (.+)$/m);
+              if (!dataMatch) continue;
+
+              try {
+                const event = JSON.parse(dataMatch[1]);
+
+                if (event.type === 'progress') {
+                  onProgress({
+                    elapsed_ms: event.elapsed_ms,
+                    current_objective: event.current_objective,
+                    best_bound: event.best_bound,
+                    solution_count: event.solution_count,
+                    current_assignments: event.current_assignments,
+                  });
+                } else if (event.type === 'complete') {
+                  resolve(event.result as ScheduleDTO);
+                  return;
+                } else if (event.type === 'error') {
+                  reject(new Error(event.message));
+                  return;
+                }
+              } catch (e) {
+                console.error('Failed to parse SSE event:', e);
+              }
+            }
+          }
+        })
+        .catch(reject);
+    });
+  }
+
+  /**
+   * Health check
+   */
+  async health(): Promise<{ status: string; version: string }> {
+    const response = await this.client.get('/health');
     return response.data;
   }
 
-  async getSchedule(tournamentId: string, view: ScheduleView = 'timeslot'): Promise<ScheduleDTO> {
-    const response = await this.client.get<ScheduleDTO>(`/tournaments/${tournamentId}/schedule`, {
-      params: { view },
+  // Match State Management (File-based)
+
+  /**
+   * Get all match states from the JSON file
+   */
+  async getMatchStates(): Promise<Record<string, MatchStateDTO>> {
+    const response = await this.client.get<Record<string, MatchStateDTO>>('/match-states');
+    return response.data;
+  }
+
+  /**
+   * Get a single match state
+   */
+  async getMatchState(matchId: string): Promise<MatchStateDTO> {
+    const response = await this.client.get<MatchStateDTO>(`/match-states/${matchId}`);
+    return response.data;
+  }
+
+  /**
+   * Update a match state in the file
+   */
+  async updateMatchState(matchId: string, update: Partial<MatchStateDTO>): Promise<MatchStateDTO> {
+    const response = await this.client.put<MatchStateDTO>(`/match-states/${matchId}`, {
+      matchId,
+      ...update,
     });
     return response.data;
   }
 
-  // Match State
-  async updateMatchState(tournamentId: string, matchId: string, state: MatchStateDTO): Promise<void> {
-    await this.client.post(`/tournaments/${tournamentId}/schedule/matches/${matchId}/state`, state);
+  /**
+   * Delete a match state from the file (reset to default)
+   */
+  async deleteMatchState(matchId: string): Promise<void> {
+    await this.client.delete(`/match-states/${matchId}`);
   }
 
-  // Roster
-  async getRoster(tournamentId: string): Promise<PlayerDTO[]> {
-    const response = await this.client.get<PlayerDTO[]>(`/tournaments/${tournamentId}/roster`);
+  /**
+   * Reset all match states (clear the file)
+   */
+  async resetMatchStates(): Promise<void> {
+    await this.client.post('/match-states/reset');
+  }
+
+  /**
+   * Export tournament state as downloadable JSON file
+   */
+  async exportMatchStates(): Promise<Blob> {
+    const response = await this.client.get('/match-states/export/download', {
+      responseType: 'blob',
+    });
     return response.data;
   }
 
-  async importRoster(tournamentId: string, data: RosterImportDTO): Promise<PlayerDTO[]> {
-    const response = await this.client.post<PlayerDTO[]>(`/tournaments/${tournamentId}/roster/import`, data);
+  /**
+   * Import tournament state from JSON file
+   */
+  async importMatchStates(file: File): Promise<{ message: string; matchCount: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await this.client.post('/match-states/import/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   }
 
-  async createPlayer(tournamentId: string, player: PlayerDTO): Promise<PlayerDTO> {
-    const response = await this.client.post<PlayerDTO>(`/tournaments/${tournamentId}/roster`, player);
+  /**
+   * Bulk import match states from a dictionary (used for v2.0 tournament export)
+   */
+  async importMatchStatesBulk(matchStates: Record<string, MatchStateDTO>): Promise<{ message: string; importedCount: number }> {
+    const response = await this.client.post('/match-states/import-bulk', matchStates);
     return response.data;
   }
-
-  async updatePlayer(tournamentId: string, playerId: string, player: Partial<PlayerDTO>): Promise<PlayerDTO> {
-    const response = await this.client.put<PlayerDTO>(`/tournaments/${tournamentId}/roster/${playerId}`, player);
-    return response.data;
-  }
-
-  async deletePlayer(tournamentId: string, playerId: string): Promise<void> {
-    await this.client.delete(`/tournaments/${tournamentId}/roster/${playerId}`);
-  }
-
-  // Groups (Schools)
-  async getGroups(tournamentId: string): Promise<RosterGroupDTO[]> {
-    const response = await this.client.get<RosterGroupDTO[]>(`/tournaments/${tournamentId}/roster/groups`);
-    return response.data;
-  }
-
-  async createGroup(tournamentId: string, group: RosterGroupDTO): Promise<RosterGroupDTO> {
-    const response = await this.client.post<RosterGroupDTO>(`/tournaments/${tournamentId}/roster/groups`, group);
-    return response.data;
-  }
-
-  async updateGroup(tournamentId: string, groupId: string, group: Partial<RosterGroupDTO>): Promise<RosterGroupDTO> {
-    const response = await this.client.put<RosterGroupDTO>(`/tournaments/${tournamentId}/roster/groups/${groupId}`, group);
-    return response.data;
-  }
-
-  async deleteGroup(tournamentId: string, groupId: string): Promise<void> {
-    await this.client.delete(`/tournaments/${tournamentId}/roster/groups/${groupId}`);
-  }
-
-  // Matches
-  async getMatches(tournamentId: string): Promise<MatchDTO[]> {
-    const response = await this.client.get<MatchDTO[]>(`/tournaments/${tournamentId}/matches`);
-    return response.data;
-  }
-
-  async importMatches(tournamentId: string, data: MatchesImportDTO): Promise<MatchDTO[]> {
-    const response = await this.client.post<MatchDTO[]>(`/tournaments/${tournamentId}/matches/import`, data);
-    return response.data;
-  }
-
-  async createMatch(tournamentId: string, match: MatchDTO): Promise<MatchDTO> {
-    const response = await this.client.post<MatchDTO>(`/tournaments/${tournamentId}/matches`, match);
-    return response.data;
-  }
-
-  async updateMatch(tournamentId: string, matchId: string, match: Partial<MatchDTO>): Promise<MatchDTO> {
-    const response = await this.client.put<MatchDTO>(`/tournaments/${tournamentId}/matches/${matchId}`, match);
-    return response.data;
-  }
-
-  async deleteMatch(tournamentId: string, matchId: string): Promise<void> {
-    await this.client.delete(`/tournaments/${tournamentId}/matches/${matchId}`);
-  }
-
-  // Helper methods for DTO mapping
-  private mapConfigToDTO(config: TournamentConfig): TournamentConfigDTO {
-    return {
-      intervalMinutes: config.intervalMinutes,
-      dayStart: config.dayStart,
-      dayEnd: config.dayEnd,
-      breaks: config.breaks,
-      courtCount: config.courtCount,
-      defaultRestMinutes: config.defaultRestMinutes,
-      freezeHorizonSlots: config.freezeHorizonSlots,
-    };
-  }
-
-  private mapConfigFromDTO(dto: TournamentConfigDTO): TournamentConfig {
-    return {
-      intervalMinutes: dto.intervalMinutes,
-      dayStart: dto.dayStart,
-      dayEnd: dto.dayEnd,
-      breaks: dto.breaks,
-      courtCount: dto.courtCount,
-      defaultRestMinutes: dto.defaultRestMinutes,
-      freezeHorizonSlots: dto.freezeHorizonSlots,
-    };
-  }
-
 }
 
 export const apiClient = new ApiClient();

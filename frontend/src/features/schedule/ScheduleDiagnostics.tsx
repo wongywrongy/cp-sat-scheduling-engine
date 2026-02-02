@@ -6,7 +6,7 @@ interface ScheduleDiagnosticsProps {
 
 export function ScheduleDiagnostics({ schedule }: ScheduleDiagnosticsProps) {
   return (
-    <div className="mt-6 bg-white rounded-lg shadow p-6">
+    <div className="p-6">
       <h3 className="text-lg font-semibold mb-4">Diagnostics</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

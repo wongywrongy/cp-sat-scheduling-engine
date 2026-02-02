@@ -2,19 +2,33 @@ import { useState } from 'react';
 import { useRoster } from '../hooks/useRoster';
 import { useRosterGroups } from '../hooks/useRosterGroups';
 import { PlayerForm } from '../features/roster/PlayerForm';
-import { RosterImportDialog } from '../features/roster/RosterImportDialog';
+import { RankCoverageDashboard } from '../features/roster/RankCoverageDashboard';
+import { PlayerListView } from '../features/roster/components/PlayerListView';
+import { BulkActionsToolbar } from '../features/roster/components/BulkActionsToolbar';
+import { BulkSchoolAssignDialog } from '../features/roster/components/BulkSchoolAssignDialog';
+import { BulkRankAssignDialog } from '../features/roster/components/BulkRankAssignDialog';
+import { PlayerImportDialog } from '../features/roster/components/PlayerImportDialog';
+import { useBulkOperations } from '../features/roster/hooks/useBulkOperations';
 import type { PlayerDTO, RosterGroupDTO } from '../api/dto';
 import { v4 as uuidv4 } from 'uuid';
 
 export function RosterPage() {
-  const { players, loading, error, createPlayer, updatePlayer, deletePlayer, importRoster } = useRoster();
+  const { players, loading, error, createPlayer, updatePlayer, deletePlayer } = useRoster();
   const { groups, createGroup, updateGroup, deleteGroup } = useRosterGroups();
+  const { bulkAssignSchool, bulkAssignRanks, bulkDeletePlayers } = useBulkOperations();
+
   const [showPlayerForm, setShowPlayerForm] = useState(false);
-  const [showImport, setShowImport] = useState(false);
   const [showGroupForm, setShowGroupForm] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<PlayerDTO | null>(null);
   const [editingGroup, setEditingGroup] = useState<RosterGroupDTO | null>(null);
   const [newGroupName, setNewGroupName] = useState('');
+
+  // Bulk operations state
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [showBulkSchoolDialog, setShowBulkSchoolDialog] = useState(false);
+  const [showBulkRankDialog, setShowBulkRankDialog] = useState(false);
+  const [pendingSchoolId, setPendingSchoolId] = useState<string | null>(null);
 
   const handlePlayerClick = (player: PlayerDTO) => {
     setEditingPlayer(player);
@@ -59,7 +73,7 @@ export function RosterPage() {
     if (!newGroupName.trim()) return;
     try {
       await createGroup({
-        id: generateId(),
+        id: uuidv4(),
         name: newGroupName.trim(),
       });
       setNewGroupName('');
@@ -96,6 +110,52 @@ export function RosterPage() {
     }
   };
 
+  // Bulk operation handlers
+  const handleBulkSchoolAssign = (schoolId: string) => {
+    setPendingSchoolId(schoolId);
+    setShowBulkSchoolDialog(true);
+  };
+
+  const handleBulkSchoolConfirm = (clearConflictingRanks: boolean) => {
+    if (pendingSchoolId) {
+      bulkAssignSchool(selectedPlayerIds, pendingSchoolId, clearConflictingRanks);
+      setSelectedPlayerIds([]);
+      setPendingSchoolId(null);
+    }
+  };
+
+  const handleBulkRankAssign = () => {
+    setShowBulkRankDialog(true);
+  };
+
+  const handleBulkRankConfirm = (ranks: string[], mode: 'add' | 'set' | 'remove') => {
+    bulkAssignRanks(selectedPlayerIds, ranks, mode, true);
+    setSelectedPlayerIds([]);
+  };
+
+  const handleBulkDelete = () => {
+    bulkDeletePlayers(selectedPlayerIds);
+    setSelectedPlayerIds([]);
+  };
+
+  const handleImport = async (importedPlayers: PlayerDTO[], newGroups: RosterGroupDTO[]) => {
+    try {
+      // Create new groups first
+      for (const group of newGroups) {
+        await createGroup(group);
+      }
+
+      // Then create all players
+      for (const player of importedPlayers) {
+        await createPlayer(player);
+      }
+
+      setShowImportDialog(false);
+    } catch (err) {
+      // Error handled by hooks
+    }
+  };
+
   // Group players by group
   const playersByGroup = groups.reduce((acc, group) => {
     acc[group.id] = players.filter(p => p.groupId === group.id);
@@ -109,8 +169,8 @@ export function RosterPage() {
         <h2 className="text-2xl font-bold">Players & Schools</h2>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowImport(true)}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+            onClick={() => setShowImportDialog(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
           >
             Import CSV
           </button>
@@ -188,6 +248,9 @@ export function RosterPage() {
         </div>
       </div>
 
+      {/* Rank Coverage Dashboard */}
+      <RankCoverageDashboard />
+
       {error && (
         <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
           {error}
@@ -209,108 +272,56 @@ export function RosterPage() {
           <div className="text-gray-500">Loading players...</div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    School
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Rank/Event
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Min Rest (min)
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Availability
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Notes
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {players.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                      No players yet. Click "Add Player" to get started.
-                    </td>
-                  </tr>
-                ) : (
-                  players.map((player) => (
-                    <tr key={player.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                        {player.id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {player.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {player.groupId ? groups.find(g => g.id === player.groupId)?.name || '-' : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {player.rank || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {player.minRestMinutes}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {player.availability.length === 0 ? (
-                          <span className="text-gray-400">Always available</span>
-                        ) : (
-                          <div className="space-y-1">
-                            {player.availability.map((av, idx) => (
-                              <div key={idx} className="text-xs">
-                                {av.start} - {av.end}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {player.notes || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handlePlayerClick(player)}
-                          className="text-blue-600 hover:text-blue-900 mr-4"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handlePlayerDelete(player.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {showImport && (
-        <RosterImportDialog
-          isOpen={showImport}
-          onClose={() => setShowImport(false)}
-          onImport={importRoster}
+        <PlayerListView
+          players={players}
+          schools={groups}
+          onSchoolChange={(playerId, schoolId) => updatePlayer(playerId, { groupId: schoolId })}
+          onRanksChange={(playerId, ranks) => updatePlayer(playerId, { ranks })}
+          onEdit={handlePlayerClick}
+          onDelete={handlePlayerDelete}
+          onSelectionChange={setSelectedPlayerIds}
         />
       )}
+
+      {/* Bulk Actions Toolbar */}
+      <BulkActionsToolbar
+        selectedCount={selectedPlayerIds.length}
+        schools={groups}
+        onClearSelection={() => setSelectedPlayerIds([])}
+        onBulkSchoolAssign={handleBulkSchoolAssign}
+        onBulkRankAssign={handleBulkRankAssign}
+        onBulkDelete={handleBulkDelete}
+      />
+
+      {/* Bulk School Assign Dialog */}
+      {pendingSchoolId && (
+        <BulkSchoolAssignDialog
+          isOpen={showBulkSchoolDialog}
+          selectedPlayerIds={selectedPlayerIds}
+          targetSchoolId={pendingSchoolId}
+          targetSchoolName={groups.find(g => g.id === pendingSchoolId)?.name || ''}
+          onClose={() => {
+            setShowBulkSchoolDialog(false);
+            setPendingSchoolId(null);
+          }}
+          onConfirm={handleBulkSchoolConfirm}
+        />
+      )}
+
+      {/* Bulk Rank Assign Dialog */}
+      <BulkRankAssignDialog
+        isOpen={showBulkRankDialog}
+        selectedPlayerIds={selectedPlayerIds}
+        onClose={() => setShowBulkRankDialog(false)}
+        onConfirm={handleBulkRankConfirm}
+      />
+
+      <PlayerImportDialog
+        isOpen={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
+        onImport={handleImport}
+        existingGroups={groups}
+      />
     </div>
   );
 }

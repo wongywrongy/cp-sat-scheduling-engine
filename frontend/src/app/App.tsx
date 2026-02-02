@@ -5,6 +5,7 @@ import { TournamentSetupPage } from '../pages/TournamentSetupPage';
 import { RosterPage } from '../pages/RosterPage';
 import { MatchesPage } from '../pages/MatchesPage';
 import { SchedulePage } from '../pages/SchedulePage';
+import LiveTrackingPage from '../pages/LiveTrackingPage';
 
 function App() {
   const [backendHealth, setBackendHealth] = useState<'healthy' | 'unhealthy' | 'checking'>('checking');
@@ -30,7 +31,7 @@ function App() {
   }, []);
 
   const healthColor = backendHealth === 'healthy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-  const healthIcon = backendHealth === 'checking' ? '⏳' : (backendHealth === 'healthy' ? '✓' : '✗');
+  const healthDot = backendHealth === 'healthy' ? 'bg-green-500' : backendHealth === 'checking' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500';
 
   return (
     <ErrorBoundary>
@@ -48,6 +49,7 @@ function App() {
                     <Link to="/roster" className="text-sm text-gray-700 hover:text-gray-900">Players</Link>
                     <Link to="/matches" className="text-sm text-gray-700 hover:text-gray-900">Matches</Link>
                     <Link to="/schedule" className="text-sm text-gray-700 hover:text-gray-900">Schedule</Link>
+                    <Link to="/tracking" className="text-sm font-semibold text-purple-700 hover:text-purple-900">Live Tracking</Link>
                   </nav>
                   <button
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -62,8 +64,9 @@ function App() {
                       )}
                     </svg>
                   </button>
-                  <span className={`hidden sm:inline text-xs font-medium px-2 py-1 rounded ${healthColor}`}>
-                    {healthIcon} Backend: {backendHealth === 'checking' ? 'Checking...' : backendHealth.charAt(0).toUpperCase()}
+                  <span className={`hidden sm:inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded ${healthColor}`}>
+                    <span className={`w-2 h-2 rounded-full ${healthDot}`} />
+                    Backend: {backendHealth === 'checking' ? 'Checking...' : backendHealth.charAt(0).toUpperCase()}
                   </span>
                   {backendHealth === 'unhealthy' && (
                     <div className="hidden sm:block ml-2">
@@ -84,9 +87,11 @@ function App() {
                     <Link to="/roster" className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Players</Link>
                     <Link to="/matches" className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Matches</Link>
                     <Link to="/schedule" className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Schedule</Link>
+                    <Link to="/tracking" className="px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50 rounded" onClick={() => setMobileMenuOpen(false)}>Live Tracking</Link>
                     <div className="px-4 py-2 border-t border-gray-200 mt-2">
-                      <span className={`text-xs font-medium px-2 py-1 rounded ${healthColor}`}>
-                        {healthIcon} Backend: {backendHealth === 'checking' ? 'Checking...' : backendHealth.charAt(0).toUpperCase()}
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded ${healthColor}`}>
+                        <span className={`w-2 h-2 rounded-full ${healthDot}`} />
+                        Backend: {backendHealth === 'checking' ? 'Checking...' : backendHealth.charAt(0).toUpperCase()}
                       </span>
                     </div>
                   </div>
@@ -101,6 +106,7 @@ function App() {
               <Route path="/roster" element={<RosterPage />} />
               <Route path="/matches" element={<MatchesPage />} />
               <Route path="/schedule" element={<SchedulePage />} />
+              <Route path="/tracking" element={<LiveTrackingPage />} />
             </Routes>
           </main>
         </div>

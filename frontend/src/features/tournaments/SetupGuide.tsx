@@ -93,7 +93,7 @@ export function SetupGuide({ isOpen, onClose }: SetupGuideProps) {
           </div>
 
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-semibold text-blue-900 mb-2">💡 Tips</h4>
+            <h4 className="font-semibold text-blue-900 mb-2">Tips</h4>
             <ul className="list-disc list-inside space-y-1 text-blue-800 text-xs">
               <li>Make sure Day End is after Day Start</li>
               <li>Total available time = (Day End - Day Start) minutes</li>

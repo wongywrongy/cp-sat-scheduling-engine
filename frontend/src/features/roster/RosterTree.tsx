@@ -68,11 +68,9 @@ export function RosterTree({
           )}
           {!hasChildren && <span className="mr-2 w-5" />}
           <span
-            className="text-sm mr-2"
-            style={{ color: group.metadata?.color || undefined }}
-          >
-            {group.type === 'group' ? '📁' : '👥'}
-          </span>
+            className={`w-2 h-2 rounded-full mr-2 ${group.type === 'group' ? 'bg-gray-400' : 'bg-blue-400'}`}
+            style={{ backgroundColor: group.metadata?.color || undefined }}
+          />
           <span className={`text-sm flex-1 ${group.type === 'group' ? 'font-semibold' : ''}`}>
             {group.name}
           </span>
@@ -96,7 +94,10 @@ export function RosterTree({
                 style={{ paddingLeft: `${(level + 1) * 24 + 32}px` }}
                 onClick={() => onPlayerClick?.(player)}
               >
-                <span className="text-sm">👤 {player.name}</span>
+                <span className="text-sm flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                  {player.name}
+                </span>
                 {player.availability.length > 0 && (
                   <span className="text-xs text-gray-500 ml-2">
                     ({player.availability.length} availability window{player.availability.length > 1 ? 's' : ''})
@@ -131,7 +132,10 @@ export function RosterTree({
             }`}
             onClick={() => onPlayerClick?.(player)}
           >
-            <span className="text-sm ml-8">👤 {player.name} <span className="text-xs text-gray-500">(Ungrouped)</span></span>
+            <span className="text-sm ml-8 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+              {player.name} <span className="text-xs text-gray-500">(Ungrouped)</span>
+            </span>
           </div>
         ))}
       </div>

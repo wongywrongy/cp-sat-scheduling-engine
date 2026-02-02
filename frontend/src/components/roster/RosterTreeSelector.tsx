@@ -89,8 +89,9 @@ export function RosterTreeSelector({
             </button>
           )}
           {!hasChildren && <span className="mr-2 w-4" />}
-          <span className={`text-sm ${group.type === 'group' ? 'font-semibold' : ''}`}>
-            {group.type === 'group' ? '📁' : '👥'} {group.name}
+          <span className={`text-sm flex items-center gap-2 ${group.type === 'group' ? 'font-semibold' : ''}`}>
+            <span className={`w-2 h-2 rounded-full ${group.type === 'group' ? 'bg-gray-400' : 'bg-blue-400'}`} />
+            {group.name}
           </span>
         </div>
         {hasChildren && isExpanded && (

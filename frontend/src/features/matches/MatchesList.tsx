@@ -73,7 +73,7 @@ export function MatchesList({ matches, onEdit, onDelete, onSelectionChange }: Ma
 
   if (matches.length === 0) {
     return (
-      <div className="p-8 bg-white rounded-lg shadow text-center">
+      <div className="p-4 bg-white rounded shadow-sm border border-gray-200 text-center">
         <svg
           className="mx-auto h-12 w-12 text-gray-400"
           fill="none"
@@ -96,11 +96,11 @@ export function MatchesList({ matches, onEdit, onDelete, onSelectionChange }: Ma
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+        <thead className="bg-gray-50 sticky top-0 z-10">
           <tr>
-            <th className="px-4 py-3 w-12">
+            <th className="px-3 py-2 w-12">
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -114,7 +114,7 @@ export function MatchesList({ matches, onEdit, onDelete, onSelectionChange }: Ma
                 aria-label="Select all matches"
               />
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               <button
                 onClick={() => handleSort('eventRank')}
                 className="flex items-center gap-1 hover:text-gray-700 focus:outline-none"
@@ -125,7 +125,7 @@ export function MatchesList({ matches, onEdit, onDelete, onSelectionChange }: Ma
                 )}
               </button>
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               <button
                 onClick={() => handleSort('type')}
                 className="flex items-center gap-1 hover:text-gray-700 focus:outline-none"
@@ -136,25 +136,25 @@ export function MatchesList({ matches, onEdit, onDelete, onSelectionChange }: Ma
                 )}
               </button>
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Side A
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Side B
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Side C
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Duration (slots)
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Duration
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Preferred Court
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Court
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Tags
             </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               Actions
             </th>
           </tr>
@@ -165,9 +165,9 @@ export function MatchesList({ matches, onEdit, onDelete, onSelectionChange }: Ma
             return (
               <tr
                 key={match.id}
-                className={isSelected ? 'bg-blue-50' : ''}
+                className={`${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
               >
-                <td className="px-4 py-4">
+                <td className="px-3 py-2.5">
                   <input
                     type="checkbox"
                     checked={isSelected}
@@ -176,38 +176,38 @@ export function MatchesList({ matches, onEdit, onDelete, onSelectionChange }: Ma
                     aria-label={`Select match ${match.eventRank || match.id}`}
                   />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="px-3 py-2.5 whitespace-nowrap text-sm font-medium text-gray-900">
                   {match.eventRank || '-'}
                 </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <span className={`px-2 py-1 rounded text-xs ${
+              <td className="px-3 py-2.5 whitespace-nowrap text-sm text-gray-500">
+                <span className={`px-1.5 py-0.5 rounded-sm text-xs ${
                   match.matchType === 'tri' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
                 }`}>
-                  {match.matchType === 'tri' ? 'Tri-Meet' : 'Dual'}
+                  {match.matchType === 'tri' ? 'Tri' : 'Dual'}
                 </span>
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500">
+              <td className="px-3 py-2.5 text-sm text-gray-500">
                 {match.sideA.length > 0 ? getPlayerNames(match.sideA).join(' & ') : '-'}
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500">
+              <td className="px-3 py-2.5 text-sm text-gray-500">
                 {match.sideB.length > 0 ? getPlayerNames(match.sideB).join(' & ') : '-'}
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500">
+              <td className="px-3 py-2.5 text-sm text-gray-500">
                 {match.sideC && match.sideC.length > 0 ? getPlayerNames(match.sideC).join(' & ') : '-'}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className="px-3 py-2.5 whitespace-nowrap text-sm text-gray-500">
                 {match.durationSlots}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className="px-3 py-2.5 whitespace-nowrap text-sm text-gray-500">
                 {match.preferredCourt || '-'}
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500">
+              <td className="px-3 py-2.5 text-sm text-gray-500">
                 {match.tags && match.tags.length > 0 ? match.tags.join(', ') : '-'}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <td className="px-3 py-2.5 whitespace-nowrap text-right text-sm font-medium">
                 <button
                   onClick={() => onEdit(match)}
-                  className="text-blue-600 hover:text-blue-900 mr-4"
+                  className="text-blue-600 hover:text-blue-900 mr-3"
                 >
                   Edit
                 </button>

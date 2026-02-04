@@ -26,15 +26,15 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
-          <div className="bg-white p-8 rounded-lg shadow-lg max-w-2xl">
-            <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
-            <p className="text-gray-700 mb-4">{this.state.error?.message}</p>
-            <pre className="bg-gray-100 p-4 rounded overflow-auto text-sm">
+          <div className="bg-white p-4 rounded shadow max-w-2xl">
+            <h1 className="text-xl font-bold text-red-600 mb-3">Something went wrong</h1>
+            <p className="text-gray-700 mb-3 text-sm">{this.state.error?.message}</p>
+            <pre className="bg-gray-100 p-3 rounded-sm overflow-auto text-xs">
               {this.state.error?.stack}
             </pre>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="mt-3 px-3 py-1.5 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
             >
               Reload Page
             </button>

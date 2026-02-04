@@ -34,7 +34,7 @@ export function CurrentTimeIndicator({ lastSynced }: CurrentTimeIndicatorProps) 
 
   if (!config) {
     return (
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="bg-white rounded shadow-sm p-3">
         <div className="text-sm text-gray-500">No tournament configuration</div>
       </div>
     );
@@ -53,10 +53,10 @@ export function CurrentTimeIndicator({ lastSynced }: CurrentTimeIndicatorProps) 
     });
 
     return (
-      <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+      <div className="bg-white rounded shadow-sm p-3 flex items-center justify-between">
         <div>
           <div className="text-sm text-gray-600">Current Time</div>
-          <div className="text-3xl font-mono font-bold text-blue-600">{timeStr}</div>
+          <div className="text-2xl font-mono font-bold text-blue-600">{timeStr}</div>
         </div>
 
         {lastSynced && (
@@ -74,7 +74,7 @@ export function CurrentTimeIndicator({ lastSynced }: CurrentTimeIndicatorProps) 
   // Tournament is in the future
   if (daysDiff > 0) {
     return (
-      <div className="bg-blue-50 border border-blue-200 rounded-lg shadow p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded shadow-sm p-3">
         <div className="text-sm text-gray-600 mb-1">Tournament Scheduled</div>
         <div className="text-lg font-semibold text-gray-900">
           {formatDateLong(config.tournamentDate!)}
@@ -91,7 +91,7 @@ export function CurrentTimeIndicator({ lastSynced }: CurrentTimeIndicatorProps) 
 
   // Tournament is in the past
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-lg shadow p-4">
+    <div className="bg-gray-50 border border-gray-200 rounded shadow-sm p-3">
       <div className="text-sm text-gray-600 mb-1">Tournament Completed</div>
       <div className="text-lg font-semibold text-gray-700">
         {formatDateLong(config.tournamentDate!)}

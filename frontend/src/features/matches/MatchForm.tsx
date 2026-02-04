@@ -114,10 +114,10 @@ export function MatchForm({ match, onSave, onCancel }: MatchFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4">{match ? 'Edit Match' : 'Add Match'}</h3>
+    <form onSubmit={handleSubmit} className="bg-white p-3 rounded shadow-sm">
+      <h3 className="text-base font-semibold mb-3">{match ? 'Edit Match' : 'Add Match'}</h3>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Match ID *
@@ -126,7 +126,7 @@ export function MatchForm({ match, onSave, onCancel }: MatchFormProps) {
             type="text"
             value={formData.id}
             onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-            className={`w-full px-3 py-2 border rounded-md ${errors.id ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full px-2 py-1.5 border rounded-sm text-sm ${errors.id ? 'border-red-500' : 'border-gray-300'}`}
             disabled={!!match}
           />
           {errors.id && <p className="text-red-500 text-sm mt-1">{errors.id}</p>}
@@ -166,7 +166,7 @@ export function MatchForm({ match, onSave, onCancel }: MatchFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Side A (School A) *
@@ -193,7 +193,7 @@ export function MatchForm({ match, onSave, onCancel }: MatchFormProps) {
                 ))}
               </select>
             </div>
-            <div className="border border-gray-300 rounded-md p-2 max-h-40 overflow-y-auto">
+            <div className="border border-gray-300 rounded-sm p-2 max-h-32 overflow-y-auto">
               {players.map((player) => (
                 <label key={player.id} className="flex items-center space-x-2 py-1">
                   <input
@@ -245,7 +245,7 @@ export function MatchForm({ match, onSave, onCancel }: MatchFormProps) {
                 ))}
               </select>
             </div>
-            <div className="border border-gray-300 rounded-md p-2 max-h-40 overflow-y-auto">
+            <div className="border border-gray-300 rounded-sm p-2 max-h-32 overflow-y-auto">
               {players.map((player) => (
                 <label key={player.id} className="flex items-center space-x-2 py-1">
                   <input
@@ -299,7 +299,7 @@ export function MatchForm({ match, onSave, onCancel }: MatchFormProps) {
                   ))}
                 </select>
               </div>
-              <div className="border border-gray-300 rounded-md p-2 max-h-40 overflow-y-auto">
+              <div className="border border-gray-300 rounded-sm p-2 max-h-32 overflow-y-auto">
                 {players.map((player) => (
                   <label key={player.id} className="flex items-center space-x-2 py-1">
                     <input
@@ -336,7 +336,7 @@ export function MatchForm({ match, onSave, onCancel }: MatchFormProps) {
             type="number"
             value={formData.durationSlots}
             onChange={(e) => setFormData({ ...formData, durationSlots: parseInt(e.target.value) || 1 })}
-            className={`w-full px-3 py-2 border rounded-md ${errors.durationSlots ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full px-2 py-1.5 border rounded-sm text-sm ${errors.durationSlots ? 'border-red-500' : 'border-gray-300'}`}
             min="1"
           />
           {errors.durationSlots && <p className="text-red-500 text-sm mt-1">{errors.durationSlots}</p>}
@@ -381,7 +381,7 @@ export function MatchForm({ match, onSave, onCancel }: MatchFormProps) {
             <button
               type="button"
               onClick={addTag}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-sm text-sm hover:bg-gray-300"
             >
               Add
             </button>
@@ -390,7 +390,7 @@ export function MatchForm({ match, onSave, onCancel }: MatchFormProps) {
             {formData.tags?.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                className="inline-flex items-center px-2 py-0.5 rounded-sm text-sm bg-blue-100 text-blue-800"
               >
                 {tag}
                 <button
@@ -409,13 +409,13 @@ export function MatchForm({ match, onSave, onCancel }: MatchFormProps) {
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-sm text-sm hover:bg-gray-300"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
           >
             Save
           </button>

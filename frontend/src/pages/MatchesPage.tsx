@@ -80,15 +80,15 @@ export function MatchesPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-3">
         <h2 className="text-2xl font-bold">Matches</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <button
             onClick={() => {
               setMatchType('dual');
               setShowVisualGenerator(true);
             }}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            className="px-3 py-1.5 bg-green-600 text-white rounded-sm text-sm hover:bg-green-700"
           >
             Visual Generator (Dual)
           </button>
@@ -97,13 +97,13 @@ export function MatchesPage() {
               setMatchType('tri');
               setShowVisualGenerator(true);
             }}
-            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+            className="px-3 py-1.5 bg-purple-600 text-white rounded-sm text-sm hover:bg-purple-700"
           >
             Visual Generator (Tri-Meet)
           </button>
           <button
             onClick={handleAddMatch}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
           >
             Add Match Manually
           </button>
@@ -111,13 +111,13 @@ export function MatchesPage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded-sm text-sm">
           {error}
         </div>
       )}
 
       {showVisualGenerator && (
-        <div className="mb-6">
+        <div className="mb-3">
           <VisualMatchGenerator
             matchType={matchType}
             onSaveMatches={handleSaveGeneratedMatches}
@@ -127,7 +127,7 @@ export function MatchesPage() {
       )}
 
       {showForm && !showVisualGenerator && (
-        <div className="mb-6">
+        <div className="mb-3">
           <MatchForm
             match={editingMatch || undefined}
             onSave={handleSave}
@@ -137,7 +137,7 @@ export function MatchesPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center h-48">
           <div className="text-gray-500">Loading matches...</div>
         </div>
       ) : (

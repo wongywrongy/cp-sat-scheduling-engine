@@ -142,7 +142,9 @@ class CPSATScheduler:
         
         # Soft constraint slack variables
         self.rest_slack: Dict[Tuple[str, str, str], cp_model.IntVar] = {}
-        
+        self.proximity_min_slack: Dict[Tuple[str, str, str], cp_model.IntVar] = {}
+        self.proximity_max_slack: Dict[Tuple[str, str, str], cp_model.IntVar] = {}
+
         # Tracking
         self.infeasible_reasons: List[str] = []
         self.locked_matches: Set[str] = set()
@@ -365,7 +367,91 @@ class CPSATScheduler:
                         self.model.Add(
                             self.end_slot[m_j.id] + rest_slots - slack <= self.start_slot[m_i.id]
                         ).OnlyEnforceIf(b_ij.Not())
-    
+
+    def _add_game_proximity_constraint(self) -> None:
+        """Game proximity constraint: control spacing between consecutive games for each player.
+
+        This soft constraint penalizes games that are too close together (min_game_spacing_slots)
+        or too far apart (max_game_spacing_slots) for the same player.
+        """
+        if not self.config.enable_game_proximity:
+            return
+
+        min_spacing = self.config.min_game_spacing_slots
+        max_spacing = self.config.max_game_spacing_slots
+
+        if min_spacing is None and max_spacing is None:
+            return
+
+        # Build player -> matches mapping
+        player_matches: Dict[str, List[Match]] = defaultdict(list)
+        for match in self.matches.values():
+            for player_id in get_player_ids(match):
+                player_matches[player_id].append(match)
+
+        for player_id, matches in player_matches.items():
+            if len(matches) <= 1:
+                continue
+
+            # For each pair of matches involving this player
+            for i in range(len(matches)):
+                for j in range(i + 1, len(matches)):
+                    m_i = matches[i]
+                    m_j = matches[j]
+
+                    # Create ordering variable: b_ij = 1 means m_i ends before m_j starts
+                    b_ij = self.model.NewBoolVar(f"prox_order_{m_i.id}_{m_j.id}_{player_id}")
+
+                    # Link b_ij to actual match ordering
+                    # b_ij = 1 <=> end[m_i] <= start[m_j]
+                    # We use: b_ij => (end[m_i] <= start[m_j]) AND !b_ij => (end[m_j] <= start[m_i])
+                    # Since player non-overlap ensures matches don't overlap, exactly one must be true
+                    self.model.Add(
+                        self.end_slot[m_i.id] <= self.start_slot[m_j.id]
+                    ).OnlyEnforceIf(b_ij)
+                    self.model.Add(
+                        self.end_slot[m_j.id] <= self.start_slot[m_i.id]
+                    ).OnlyEnforceIf(b_ij.Not())
+
+                    if min_spacing is not None:
+                        # Soft minimum spacing constraint
+                        # If gap < min_spacing, add slack penalty
+                        slack_min = self.model.NewIntVar(
+                            0, min_spacing,
+                            f"prox_min_slack_{m_i.id}_{m_j.id}_{player_id}"
+                        )
+                        self.proximity_min_slack[(player_id, m_i.id, m_j.id)] = slack_min
+
+                        # When m_i before m_j (b_ij=1): start[m_j] - end[m_i] + slack >= min_spacing
+                        self.model.Add(
+                            self.start_slot[m_j.id] - self.end_slot[m_i.id] + slack_min >= min_spacing
+                        ).OnlyEnforceIf(b_ij)
+
+                        # When m_j before m_i (b_ij=0): start[m_i] - end[m_j] + slack >= min_spacing
+                        self.model.Add(
+                            self.start_slot[m_i.id] - self.end_slot[m_j.id] + slack_min >= min_spacing
+                        ).OnlyEnforceIf(b_ij.Not())
+
+                    if max_spacing is not None:
+                        # Soft maximum spacing constraint
+                        # If gap > max_spacing, add slack penalty
+                        max_possible_gap = self.config.total_slots
+                        slack_max = self.model.NewIntVar(
+                            0, max_possible_gap,
+                            f"prox_max_slack_{m_i.id}_{m_j.id}_{player_id}"
+                        )
+                        self.proximity_max_slack[(player_id, m_i.id, m_j.id)] = slack_max
+
+                        # When m_i before m_j (b_ij=1): start[m_j] - end[m_i] - slack <= max_spacing
+                        self.model.Add(
+                            self.start_slot[m_j.id] - self.end_slot[m_i.id] - slack_max <= max_spacing
+                        ).OnlyEnforceIf(b_ij)
+
+                        # When m_j before m_i (b_ij=0): start[m_i] - end[m_j] - slack <= max_spacing
+                        self.model.Add(
+                            self.start_slot[m_i.id] - self.end_slot[m_j.id] - slack_max <= max_spacing
+                        ).OnlyEnforceIf(b_ij.Not())
+
     def _build_objective(self) -> None:
         """Build the objective function to minimize."""
         objective_terms = []
@@ -413,6 +499,16 @@ class CPSATScheduler:
             for (player_id, m_i, m_j), slack in self.rest_slack.items():
                 player = self.players.get(player_id)
                 penalty = player.rest_penalty if player else self.config.rest_slack_penalty
+                objective_terms.append(int(penalty * 10) * slack)
+
+        # Game proximity penalties
+        if self.config.enable_game_proximity:
+            penalty = self.config.game_proximity_penalty
+            # Minimum spacing violations (games too close)
+            for slack in self.proximity_min_slack.values():
+                objective_terms.append(int(penalty * 10) * slack)
+            # Maximum spacing violations (games too far apart)
+            for slack in self.proximity_max_slack.values():
                 objective_terms.append(int(penalty * 10) * slack)
 
         # Disruption penalty
@@ -471,6 +567,7 @@ class CPSATScheduler:
         self._add_lock_pin_constraints()
         self._add_freeze_horizon_constraint()
         self._add_rest_constraint()
+        self._add_game_proximity_constraint()
         self._build_objective()
         log_build_end(len(self.matches))
 
@@ -534,6 +631,8 @@ class CPSATScheduler:
                 self.locked_matches,
                 self.x,
                 self.rest_slack,
+                self.proximity_min_slack,
+                self.proximity_max_slack,
                 self.config,
                 solver_status,
                 runtime_ms,

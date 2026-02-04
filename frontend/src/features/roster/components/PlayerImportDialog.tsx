@@ -157,12 +157,12 @@ export function PlayerImportDialog({ isOpen, onClose, onImport, existingGroups }
         <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={handleClose} />
 
         {/* Dialog */}
-        <div className="inline-block w-full max-w-4xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Import Players from Spreadsheet</h3>
+        <div className="inline-block w-full max-w-4xl p-4 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow rounded">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">Import Players from Spreadsheet</h3>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Instructions */}
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+            <div className="p-2 bg-blue-50 border border-blue-200 rounded-sm text-sm">
               <p className="font-medium text-blue-900 mb-1">How to Import:</p>
               <ol className="text-blue-800 text-xs space-y-1 ml-4 list-decimal">
                 <li><strong>From Google Sheets/Excel:</strong> Copy the columns (Name, School) and paste directly</li>
@@ -230,8 +230,8 @@ Mike Johnson	School A`}
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
                 placeholder="Copy from spreadsheet and paste here...&#10;&#10;Name	School&#10;John Doe	School A&#10;Jane Smith	School B"
-                rows={8}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+                rows={6}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-sm font-mono text-sm"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Tip: In Google Sheets, select the Name and School columns, press Ctrl+C, then paste here
@@ -241,14 +241,14 @@ Mike Johnson	School A`}
             {/* Parse Button */}
             <button
               onClick={handleParse}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
             >
               Preview Import
             </button>
 
             {/* Error */}
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+              <div className="p-2 bg-red-50 border border-red-200 rounded-sm text-sm text-red-700">
                 {error}
               </div>
             )}
@@ -256,10 +256,10 @@ Mike Johnson	School A`}
             {/* Preview */}
             {preview.length > 0 && (
               <div>
-                <h4 className="font-medium text-gray-900 mb-2">
+                <h4 className="font-medium text-gray-900 mb-2 text-sm">
                   Preview: {preview.length} players to import
                 </h4>
-                <div className="border border-gray-300 rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+                <div className="border border-gray-300 rounded-sm overflow-hidden max-h-48 overflow-y-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
@@ -298,17 +298,17 @@ Mike Johnson	School A`}
           </div>
 
           {/* Actions */}
-          <div className="mt-6 flex gap-2 justify-end">
+          <div className="mt-4 flex gap-2 justify-end">
             <button
               onClick={handleClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-sm text-sm hover:bg-gray-300"
             >
               Cancel
             </button>
             {preview.length > 0 && (
               <button
                 onClick={handleImport}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+                className="px-3 py-1.5 bg-green-600 text-white rounded-sm text-sm hover:bg-green-700 font-medium"
               >
                 Import {preview.length} Players
               </button>

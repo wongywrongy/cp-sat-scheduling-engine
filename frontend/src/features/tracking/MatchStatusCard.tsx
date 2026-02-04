@@ -68,38 +68,38 @@ export function MatchStatusCard({
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+      <div className="bg-white rounded shadow-sm p-2 hover:shadow transition-shadow">
         {/* Header with Event Rank and Status */}
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between mb-2">
           <div>
-            <div className="text-lg font-bold text-gray-900">
+            <div className="text-base font-bold text-gray-900">
               {match.eventRank || 'Match'}
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-xs text-gray-500">
               Court {assignment.courtId} • {config && formatSlotRange(assignment.slotId, assignment.durationSlots, config)}
             </div>
           </div>
 
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(status)}`}>
+          <span className={`px-2 py-0.5 rounded-sm text-xs font-semibold ${getStatusColor(status)}`}>
             {status.toUpperCase()}
           </span>
         </div>
 
         {/* Match Details */}
-        <div className="space-y-2 mb-4">
+        <div className="space-y-1 mb-2 text-sm">
           <div className="flex items-center">
-            <span className="text-sm font-medium text-gray-700 w-16">Side A:</span>
-            <span className="text-sm text-gray-900">{sideANames || 'TBD'}</span>
+            <span className="font-medium text-gray-700 w-14">Side A:</span>
+            <span className="text-gray-900">{sideANames || 'TBD'}</span>
           </div>
           <div className="flex items-center">
-            <span className="text-sm font-medium text-gray-700 w-16">Side B:</span>
-            <span className="text-sm text-gray-900">{sideBNames || 'TBD'}</span>
+            <span className="font-medium text-gray-700 w-14">Side B:</span>
+            <span className="text-gray-900">{sideBNames || 'TBD'}</span>
           </div>
         </div>
 
         {/* Times and Score (if available) */}
         {(matchState?.actualStartTime || matchState?.actualEndTime || matchState?.score) && (
-          <div className="border-t border-gray-200 pt-3 mb-3 space-y-1">
+          <div className="border-t border-gray-200 pt-2 mb-2 space-y-0.5 text-xs">
             {matchState.actualStartTime && (
               <div className="text-xs text-gray-600">
                 Started: {matchState.actualStartTime}
@@ -124,12 +124,12 @@ export function MatchStatusCard({
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           {status === 'scheduled' && (
             <button
               onClick={() => handleStatusChange('called')}
               disabled={updating}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 text-sm font-medium"
+              className="flex-1 px-2 py-1 bg-blue-600 text-white rounded-sm hover:bg-blue-700 disabled:bg-gray-400 text-xs font-medium"
             >
               {updating ? 'Updating...' : 'Call Match'}
             </button>
@@ -139,7 +139,7 @@ export function MatchStatusCard({
             <button
               onClick={() => handleStatusChange('started')}
               disabled={updating}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 text-sm font-medium"
+              className="flex-1 px-2 py-1 bg-green-600 text-white rounded-sm hover:bg-green-700 disabled:bg-gray-400 text-xs font-medium"
             >
               {updating ? 'Updating...' : 'Start Match'}
             </button>
@@ -149,15 +149,15 @@ export function MatchStatusCard({
             <button
               onClick={handleFinishClick}
               disabled={updating}
-              className="flex-1 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-gray-400 text-sm font-medium"
+              className="flex-1 px-2 py-1 bg-purple-600 text-white rounded-sm hover:bg-purple-700 disabled:bg-gray-400 text-xs font-medium"
             >
               Finish Match
             </button>
           )}
 
           {status === 'finished' && (
-            <div className="flex-1 px-4 py-2 bg-gray-100 text-gray-600 rounded text-center text-sm font-medium flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500" />
+            <div className="flex-1 px-2 py-1 bg-gray-100 text-gray-600 rounded-sm text-center text-xs font-medium flex items-center justify-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               Complete
             </div>
           )}

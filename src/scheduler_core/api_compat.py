@@ -58,6 +58,10 @@ def to_core_request(api_request: APIScheduleRequest) -> ScheduleRequest:
         disruption_penalty=api_request.config.disruptionPenalty,
         late_finish_penalty=api_request.config.lateFinishPenalty,
         court_change_penalty=api_request.config.courtChangePenalty,
+        enable_game_proximity=api_request.config.enableGameProximity,
+        min_game_spacing_slots=api_request.config.minGameSpacingSlots,
+        max_game_spacing_slots=api_request.config.maxGameSpacingSlots,
+        game_proximity_penalty=api_request.config.gameProximityPenalty,
     )
     
     # Convert players

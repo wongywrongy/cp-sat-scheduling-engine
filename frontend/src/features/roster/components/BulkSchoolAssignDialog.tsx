@@ -60,7 +60,7 @@ export function BulkSchoolAssignDialog({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded bg-white p-4 text-left align-middle shadow transition-all">
                 <Dialog.Title
                   as="h3"
                   className="text-lg font-medium leading-6 text-gray-900"
@@ -73,7 +73,7 @@ export function BulkSchoolAssignDialog({
                   </p>
 
                   {hasConflicts && (
-                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-sm">
                       <h4 className="text-sm font-semibold text-yellow-900 mb-2 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-yellow-500" />
                         Rank Conflicts Detected
@@ -92,10 +92,10 @@ export function BulkSchoolAssignDialog({
                   )}
                 </div>
 
-                <div className="mt-6 flex gap-3 justify-end">
+                <div className="mt-4 flex gap-2 justify-end">
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="inline-flex justify-center rounded-sm border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onClick={onClose}
                   >
                     Cancel
@@ -104,7 +104,7 @@ export function BulkSchoolAssignDialog({
                   {hasConflicts && (
                     <button
                       type="button"
-                      className="inline-flex justify-center rounded-md border border-transparent bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                      className="inline-flex justify-center rounded-sm border border-transparent bg-yellow-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                       onClick={() => {
                         onConfirm(true);
                         onClose();
@@ -116,7 +116,7 @@ export function BulkSchoolAssignDialog({
 
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="inline-flex justify-center rounded-sm border border-transparent bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onClick={() => {
                       onConfirm(false);
                       onClose();

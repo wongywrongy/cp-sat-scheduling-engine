@@ -43,7 +43,7 @@ function App() {
                 <Link to="/" className="text-xl font-semibold text-gray-900 hover:text-gray-700">
                   School Sparring Scheduler
                 </Link>
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                   <nav className="hidden md:flex items-center gap-4">
                     <Link to="/setup" className="text-sm text-gray-700 hover:text-gray-900">Setup</Link>
                     <Link to="/roster" className="text-sm text-gray-700 hover:text-gray-900">Players</Link>
@@ -99,7 +99,7 @@ function App() {
               )}
             </div>
           </nav>
-          <main className="container mx-auto px-4 py-8">
+          <main className="container mx-auto px-4 py-4">
             <Routes>
               <Route path="/" element={<TournamentSetupPage />} />
               <Route path="/setup" element={<TournamentSetupPage />} />

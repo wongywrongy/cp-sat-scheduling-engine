@@ -16,6 +16,11 @@ export interface TournamentConfig {
   rankCounts?: Record<string, number>; // {"MS": 3, "WS": 3, "MD": 2, "WD": 4, "XD": 2}
   enableCourtUtilization?: boolean;
   courtUtilizationPenalty?: number;
+  // Game proximity constraint
+  enableGameProximity?: boolean;
+  minGameSpacingSlots?: number | null;
+  maxGameSpacingSlots?: number | null;
+  gameProximityPenalty?: number;
 }
 
 export interface BreakWindow {
@@ -35,6 +40,11 @@ export interface TournamentConfigDTO {
   rankCounts?: Record<string, number>;
   enableCourtUtilization?: boolean;
   courtUtilizationPenalty?: number;
+  // Game proximity constraint
+  enableGameProximity?: boolean;
+  minGameSpacingSlots?: number | null;
+  maxGameSpacingSlots?: number | null;
+  gameProximityPenalty?: number;
 }
 
 // Schedule Views
@@ -155,7 +165,7 @@ export interface SolverProgressEvent {
 
 // Constraint Visualization Types
 export interface ConstraintViolation {
-  type: 'rest' | 'overlap' | 'availability' | 'court_capacity';
+  type: 'rest' | 'overlap' | 'availability' | 'court_capacity' | 'game_proximity_min' | 'game_proximity_max';
   severity: 'hard' | 'soft';
   playerIds: string[];
   matchIds: string[];

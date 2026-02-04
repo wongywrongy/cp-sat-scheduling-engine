@@ -189,12 +189,12 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4">
+    <form onSubmit={handleSubmit} className="bg-white p-3 rounded shadow-sm">
+      <h3 className="text-base font-semibold mb-2">
         {player ? 'Edit Player' : 'Add Player'}
       </h3>
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Name *
@@ -203,7 +203,7 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className={`w-full px-3 py-2 border rounded-md ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full px-2 py-1 border rounded-sm text-sm ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
           />
           {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
         </div>
@@ -216,7 +216,7 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
             type="number"
             value={formData.minRestMinutes ?? ''}
             onChange={(e) => setFormData({ ...formData, minRestMinutes: e.target.value === '' ? null : parseInt(e.target.value) || 0 })}
-            className={`w-full px-3 py-2 border rounded-md ${errors.minRestMinutes ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full px-2 py-1 border rounded-sm text-sm ${errors.minRestMinutes ? 'border-red-500' : 'border-gray-300'}`}
             min="0"
             placeholder="Uses tournament default if empty"
           />
@@ -233,7 +233,7 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
           <textarea
             value={formData.notes || ''}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-2 py-1 border border-gray-300 rounded-sm text-sm"
             rows={3}
           />
         </div>
@@ -245,7 +245,7 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
           <select
             value={formData.groupId}
             onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
-            className={`w-full px-3 py-2 border rounded-md ${errors.groupId ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full px-2 py-1 border rounded-sm text-sm ${errors.groupId ? 'border-red-500' : 'border-gray-300'}`}
           >
             {groups.length === 0 && <option value="">No schools available - create one first</option>}
             {groups.map((group) => (
@@ -298,7 +298,7 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
             <button
               type="button"
               onClick={addAvailabilityWindow}
-              className="text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded-sm hover:bg-gray-300"
             >
               Add Window
             </button>
@@ -315,7 +315,7 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
                   type="text"
                   value={window.start}
                   onChange={(e) => updateAvailabilityWindow(index, 'start', e.target.value)}
-                  className={`flex-1 px-3 py-2 border rounded-md ${errors[`avail_${index}_start`] ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`flex-1 px-2 py-1 border rounded-sm text-sm ${errors[`avail_${index}_start`] ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="09:00"
                   pattern="^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
                   title="Time in HH:mm format (e.g., 09:00)"
@@ -325,7 +325,7 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
                   type="text"
                   value={window.end}
                   onChange={(e) => updateAvailabilityWindow(index, 'end', e.target.value)}
-                  className={`flex-1 px-3 py-2 border rounded-md ${errors[`avail_${index}_end`] ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`flex-1 px-2 py-1 border rounded-sm text-sm ${errors[`avail_${index}_end`] ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="18:00"
                   pattern="^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
                   title="Time in HH:mm format (e.g., 18:00)"
@@ -333,7 +333,7 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
                 <button
                   type="button"
                   onClick={() => removeAvailabilityWindow(index)}
-                  className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm"
+                  className="px-2 py-1 bg-red-100 text-red-700 rounded-sm hover:bg-red-200 text-xs"
                   title="Remove this availability window"
                 >
                   Remove
@@ -348,17 +348,17 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
           )}
         </div>
 
-        <div className="flex gap-2 justify-end">
+        <div className="flex gap-1 justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-sm text-sm hover:bg-gray-300"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
           >
             Save
           </button>

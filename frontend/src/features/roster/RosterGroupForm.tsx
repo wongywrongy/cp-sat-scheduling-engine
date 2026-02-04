@@ -72,10 +72,10 @@ export function RosterGroupForm({ group, allGroups, onSave, onCancel }: RosterGr
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4">{group ? 'Edit Group' : 'Create Group'}</h3>
+    <form onSubmit={handleSubmit} className="bg-white p-3 rounded shadow-sm">
+      <h3 className="text-base font-semibold mb-3">{group ? 'Edit Group' : 'Create Group'}</h3>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Group ID *
@@ -84,7 +84,7 @@ export function RosterGroupForm({ group, allGroups, onSave, onCancel }: RosterGr
             type="text"
             value={formData.id}
             onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-            className={`w-full px-3 py-2 border rounded-md ${errors.id ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full px-2 py-1.5 border rounded-sm text-sm ${errors.id ? 'border-red-500' : 'border-gray-300'}`}
             disabled={!!group}
           />
           {errors.id && <p className="text-red-500 text-sm mt-1">{errors.id}</p>}
@@ -98,7 +98,7 @@ export function RosterGroupForm({ group, allGroups, onSave, onCancel }: RosterGr
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className={`w-full px-3 py-2 border rounded-md ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full px-2 py-1.5 border rounded-sm text-sm ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
           />
           {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
         </div>
@@ -110,7 +110,7 @@ export function RosterGroupForm({ group, allGroups, onSave, onCancel }: RosterGr
           <select
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value as 'group' | 'roster' })}
-            className={`w-full px-3 py-2 border rounded-md ${errors.type ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full px-2 py-1.5 border rounded-sm text-sm ${errors.type ? 'border-red-500' : 'border-gray-300'}`}
           >
             <option value="group">Group (contains other groups)</option>
             <option value="roster">Roster (contains players)</option>
@@ -175,13 +175,13 @@ export function RosterGroupForm({ group, allGroups, onSave, onCancel }: RosterGr
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-sm text-sm hover:bg-gray-300"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
           >
             Save
           </button>

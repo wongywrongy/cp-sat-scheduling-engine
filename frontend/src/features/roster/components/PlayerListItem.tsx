@@ -38,9 +38,9 @@ export function PlayerListItem({
   onDelete,
 }: PlayerListItemProps) {
   return (
-    <tr className={isSelected ? 'bg-blue-50' : ''}>
+    <tr className={`${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
       {/* Checkbox Column */}
-      <td className="px-4 py-4">
+      <td className="px-3 py-2.5">
         <input
           type="checkbox"
           checked={isSelected}
@@ -51,13 +51,13 @@ export function PlayerListItem({
       </td>
 
       {/* Player Name Column */}
-      <td className="px-6 py-4">
-        <div className="font-medium text-gray-900">{player.name}</div>
+      <td className="px-3 py-2.5">
+        <div className="font-medium text-gray-900 text-sm">{player.name}</div>
         <div className="text-xs text-gray-500">{player.id}</div>
       </td>
 
       {/* School Column */}
-      <td className="px-6 py-4">
+      <td className="px-3 py-2.5">
         <SchoolBadgeEditor
           currentSchoolId={player.groupId}
           schools={schools}
@@ -66,7 +66,7 @@ export function PlayerListItem({
       </td>
 
       {/* Events/Ranks Column */}
-      <td className="px-6 py-4">
+      <td className="px-3 py-2.5">
         <RankBadgeEditor
           currentRanks={player.ranks || []}
           schoolId={player.groupId}
@@ -76,7 +76,7 @@ export function PlayerListItem({
       </td>
 
       {/* Actions Column */}
-      <td className="px-6 py-4 text-right">
+      <td className="px-3 py-2.5 text-right">
         <Menu as="div" className="relative inline-block text-left">
           <Menu.Button className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
             <span className="sr-only">Open menu</span>
@@ -89,7 +89,7 @@ export function PlayerListItem({
             </svg>
           </Menu.Button>
 
-          <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+          <Menu.Items className="absolute right-0 z-10 mt-1 w-40 origin-top-right rounded bg-white shadow-sm ring-1 ring-black ring-opacity-5 focus:outline-none">
             <div className="py-1">
               <Menu.Item>
                 {({ active }) => (

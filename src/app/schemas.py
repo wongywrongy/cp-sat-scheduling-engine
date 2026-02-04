@@ -77,13 +77,19 @@ class ScheduleConfig(BaseModel):
     defaultRestSlots: int = Field(default=1, ge=0, description="Default rest slots between matches")
     freezeHorizonSlots: int = Field(default=0, ge=0, description="Slots from currentSlot that are frozen")
     currentSlot: int = Field(default=0, ge=0, description="Current time as slot ID (for freeze horizon)")
-    
+
     # Objective weights
     softRestEnabled: bool = Field(default=False, description="Allow rest as soft constraint")
     restSlackPenalty: float = Field(default=10.0, ge=0, description="Penalty for rest violations")
     disruptionPenalty: float = Field(default=1.0, ge=0, description="Penalty for moving from previous schedule")
     lateFinishPenalty: float = Field(default=0.5, ge=0, description="Penalty for late start times")
     courtChangePenalty: float = Field(default=0.5, ge=0, description="Penalty for changing courts")
+
+    # Game proximity constraint
+    enableGameProximity: bool = Field(default=False, description="Enable game spacing constraint")
+    minGameSpacingSlots: Optional[int] = Field(default=None, ge=0, description="Minimum slots between games for same player")
+    maxGameSpacingSlots: Optional[int] = Field(default=None, ge=0, description="Maximum slots between games for same player")
+    gameProximityPenalty: float = Field(default=5.0, ge=0, description="Penalty weight for proximity violations")
 
 
 class SolverOptions(BaseModel):

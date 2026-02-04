@@ -165,18 +165,18 @@ export function RosterPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-3">
         <h2 className="text-2xl font-bold">Players & Schools</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <button
             onClick={() => setShowImportDialog(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            className="px-3 py-1.5 bg-green-600 text-white rounded-sm text-sm hover:bg-green-700"
           >
             Import CSV
           </button>
           <button
             onClick={handleAddPlayer}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
           >
             Add Player
           </button>
@@ -184,51 +184,51 @@ export function RosterPage() {
       </div>
 
       {/* Groups Section */}
-      <div className="mb-6 bg-white rounded-lg shadow p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Schools</h3>
-          <div className="flex gap-2">
+      <div className="mb-3 bg-white rounded shadow-sm p-2">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-base font-semibold">Schools</h3>
+          <div className="flex gap-1">
             <input
               type="text"
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleCreateGroup()}
               placeholder="School name"
-              className="px-3 py-2 border border-gray-300 rounded-md"
+              className="px-2 py-1 border border-gray-300 rounded-sm text-sm"
             />
             <button
               onClick={handleCreateGroup}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              className="px-3 py-1 bg-green-600 text-white rounded-sm text-sm hover:bg-green-700"
             >
               Add School
             </button>
           </div>
         </div>
         {showGroupForm && editingGroup && (
-          <div className="mb-4 p-3 bg-gray-50 rounded">
+          <div className="mb-2 p-2 bg-gray-50 rounded-sm">
             <input
               type="text"
               value={editingGroup.name}
               onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-md mr-2"
+              className="px-2 py-1 border border-gray-300 rounded-sm text-sm mr-1"
             />
             <button
               onClick={handleSaveGroup}
-              className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 mr-2"
+              className="px-2 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700 mr-1"
             >
               Save
             </button>
             <button
               onClick={() => { setShowGroupForm(false); setEditingGroup(null); }}
-              className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              className="px-2 py-1 bg-gray-200 text-gray-700 rounded-sm text-sm hover:bg-gray-300"
             >
               Cancel
             </button>
           </div>
         )}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1">
           {groups.map((group) => (
-            <div key={group.id} className="px-3 py-2 bg-blue-100 rounded-md flex items-center gap-2">
+            <div key={group.id} className="px-2 py-1 bg-blue-100 rounded-sm flex items-center gap-1 text-sm">
               <span className="font-medium">{group.name}</span>
               <span className="text-sm text-gray-600">({playersByGroup[group.id]?.length || 0} players)</span>
               <button
@@ -252,13 +252,13 @@ export function RosterPage() {
       <RankCoverageDashboard />
 
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded-sm text-sm">
           {error}
         </div>
       )}
 
       {showPlayerForm && (
-        <div className="mb-6">
+        <div className="mb-3">
           <PlayerForm
             player={editingPlayer || undefined}
             onSave={handlePlayerSave}
@@ -268,7 +268,7 @@ export function RosterPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center h-48">
           <div className="text-gray-500">Loading players...</div>
         </div>
       ) : (

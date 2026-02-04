@@ -39,7 +39,7 @@ export function ScheduleView({ schedule, view, config }: ScheduleViewProps) {
     const slots = Array.from(bySlot.keys()).sort((a, b) => a - b);
 
     return (
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded shadow-sm overflow-hidden">
         <div className="divide-y divide-gray-200">
           {slots.map((slotId) => {
             const slotAssignments = bySlot.get(slotId)!;
@@ -52,9 +52,9 @@ export function ScheduleView({ schedule, view, config }: ScheduleViewProps) {
             );
 
             return (
-              <div key={slotId} className="p-4">
-                <h3 className="font-semibold text-lg mb-2">{timeRange}</h3>
-                <div className="space-y-1">
+              <div key={slotId} className="p-2">
+                <h3 className="font-semibold text-base mb-1">{timeRange}</h3>
+                <div className="space-y-0.5">
                   {slotAssignments
                     .sort((a, b) => a.courtId - b.courtId)
                     .slice(0, config.courtCount)
@@ -83,15 +83,15 @@ export function ScheduleView({ schedule, view, config }: ScheduleViewProps) {
     const courts = Array.from(byCourt.keys()).sort((a, b) => a - b);
 
     return (
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded shadow-sm overflow-hidden">
         <div className="divide-y divide-gray-200">
           {courts.map((courtId) => {
             const courtAssignments = byCourt.get(courtId)!.sort((a, b) => a.slotId - b.slotId);
 
             return (
-              <div key={courtId} className="p-4">
-                <h3 className="font-semibold text-lg mb-2">Court {courtId}</h3>
-                <div className="space-y-2">
+              <div key={courtId} className="p-2">
+                <h3 className="font-semibold text-base mb-1">Court {courtId}</h3>
+                <div className="space-y-1">
                   {courtAssignments.map((assignment) => {
                     const timeRange = formatSlotRange(
                       assignment.slotId,

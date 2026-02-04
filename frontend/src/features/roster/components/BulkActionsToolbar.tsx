@@ -43,9 +43,9 @@ export function BulkActionsToolbar({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-blue-500 shadow-lg animate-slide-up">
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-blue-500 shadow animate-slide-up">
+      <div className="max-w-7xl mx-auto px-3 py-2">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           {/* Selection Count */}
           <div className="flex items-center gap-2">
             <svg
@@ -70,7 +70,7 @@ export function BulkActionsToolbar({
           <div className="flex items-center gap-3 flex-1 justify-end flex-wrap">
             {/* Assign School Dropdown */}
             <Menu as="div" className="relative inline-block text-left">
-              <Menu.Button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <Menu.Button className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <svg
                   className="w-4 h-4"
                   fill="none"
@@ -129,7 +129,7 @@ export function BulkActionsToolbar({
             {/* Assign Ranks Button */}
             <button
               onClick={onBulkRankAssign}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
             >
               <svg
                 className="w-4 h-4"
@@ -150,7 +150,7 @@ export function BulkActionsToolbar({
             {/* Delete Button */}
             <button
               onClick={handleDelete}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <svg
                 className="w-4 h-4"
@@ -171,7 +171,7 @@ export function BulkActionsToolbar({
             {/* Clear Selection */}
             <button
               onClick={onClearSelection}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-200 text-gray-700 text-sm font-medium rounded-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
             >
               Clear Selection
             </button>

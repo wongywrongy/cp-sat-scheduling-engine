@@ -46,7 +46,7 @@ export function LiveScheduleGrid({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Metrics Bar */}
       <LiveMetricsBar
         elapsed={elapsed}
@@ -57,7 +57,7 @@ export function LiveScheduleGrid({
       />
 
       {/* Main content: Grid + Conflicts Panel */}
-      <div className="flex gap-4">
+      <div className="flex gap-2">
         {/* Timeline Grid (main area) */}
         <div className="flex-1 min-w-0">
           <LiveTimelineGrid

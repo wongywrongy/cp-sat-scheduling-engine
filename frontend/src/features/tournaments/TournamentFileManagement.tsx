@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { apiClient } from '../../api/client';
 import type { TournamentExportV2 } from '../../api/dto';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export function TournamentFileManagement() {
   const config = useAppStore((state) => state.config);
@@ -27,7 +29,7 @@ export function TournamentFileManagement() {
       setMessage(null);
 
       // Fetch match states from backend (if they exist)
-      let matchStates: Record<string, any> = {};
+      let matchStates: Record<string, unknown> = {};
       try {
         const matchStatesArray = await apiClient.getMatchStates();
         matchStates = matchStatesArray.reduce(
@@ -109,7 +111,7 @@ export function TournamentFileManagement() {
 
       setMessage({
         type: 'success',
-        text: `Tournament data imported successfully! Loaded ${data.players.length} players and ${data.matches.length} matches.`
+        text: `Imported ${data.players.length} players and ${data.matches.length} matches.`
       });
 
       // Clear the file input
@@ -128,67 +130,70 @@ export function TournamentFileManagement() {
   const hasData = config && (players.length > 0 || matches.length > 0);
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 space-y-4">
-      <h3 className="text-lg font-semibold">Tournament File Management</h3>
+    <Card>
+      <CardHeader className="py-3 px-4">
+        <CardTitle className="text-sm">File Management</CardTitle>
+      </CardHeader>
+      <CardContent className="px-4 pb-4 pt-0 space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Export/import tournament data including configuration, players, matches, and schedule.
+        </p>
 
-      <p className="text-sm text-gray-600">
-        Export your complete tournament data to a portable JSON file that can be moved between computers.
-        The file includes configuration, players, matches, schedule, and live tracking states.
-      </p>
-
-      {message && (
-        <div
-          className={`p-3 rounded-md ${
-            message.type === 'success'
-              ? 'bg-green-50 border border-green-200 text-green-800'
-              : 'bg-red-50 border border-red-200 text-red-800'
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
-
-      <div className="flex gap-3">
-        <button
-          onClick={handleExport}
-          disabled={!hasData || exporting}
-          className={`px-4 py-2 rounded-md font-medium ${
-            hasData && !exporting
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
-        >
-          {exporting ? 'Exporting...' : 'Export Tournament'}
-        </button>
-
-        <label
-          className={`px-4 py-2 rounded-md font-medium cursor-pointer ${
-            importing
-              ? 'bg-gray-300 text-gray-500'
-              : 'bg-green-600 text-white hover:bg-green-700'
-          }`}
-        >
-          {importing ? 'Importing...' : 'Import Tournament'}
-          <input
-            type="file"
-            accept=".json"
-            onChange={handleImport}
-            disabled={importing}
-            className="hidden"
-          />
-        </label>
-      </div>
-
-      <div className="text-xs text-gray-500 space-y-1">
-        <p><strong>Tip:</strong> Regular exports act as backups. Copy the file to USB or cloud storage for safekeeping.</p>
-        <p><strong>File format:</strong> tournament_2026-02-15.json</p>
-        {!hasData && (
-          <p className="text-yellow-700 mt-2 flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-yellow-500" />
-            No tournament data to export. Create a configuration and add players/matches first.
-          </p>
+        {message && (
+          <div
+            className={`p-2 rounded-md text-sm ${
+              message.type === 'success'
+                ? 'bg-green-50 border border-green-200 text-green-800'
+                : 'bg-destructive/10 border border-destructive/20 text-destructive'
+            }`}
+          >
+            {message.text}
+          </div>
         )}
-      </div>
-    </div>
+
+        <div className="flex gap-2">
+          <Button
+            onClick={handleExport}
+            disabled={!hasData || exporting}
+            size="sm"
+          >
+            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {exporting ? 'Exporting...' : 'Export'}
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={importing}
+            asChild
+          >
+            <label className="cursor-pointer">
+              <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              {importing ? 'Importing...' : 'Import'}
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImport}
+                disabled={importing}
+                className="hidden"
+              />
+            </label>
+          </Button>
+        </div>
+
+        {!hasData && (
+          <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            No data to export yet
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

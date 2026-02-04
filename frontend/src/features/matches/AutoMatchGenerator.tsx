@@ -52,10 +52,10 @@ export function AutoMatchGenerator({ onGenerate, onCancel }: AutoMatchGeneratorP
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4">Auto-Generate Matches</h3>
+    <div className="bg-white p-3 rounded shadow-sm">
+      <h3 className="text-base font-semibold mb-3">Auto-Generate Matches</h3>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Generation Type *
@@ -63,7 +63,7 @@ export function AutoMatchGenerator({ onGenerate, onCancel }: AutoMatchGeneratorP
           <select
             value={rule.type}
             onChange={(e) => setRule({ ...rule, type: e.target.value as MatchGenerationRule['type'] })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-2 py-1.5 border border-gray-300 rounded-sm text-sm"
           >
             <option value="all_vs_all">All vs All (every combination)</option>
             <option value="round_robin">Round Robin (each plays each once)</option>
@@ -78,7 +78,7 @@ export function AutoMatchGenerator({ onGenerate, onCancel }: AutoMatchGeneratorP
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Roster A *
@@ -120,7 +120,7 @@ export function AutoMatchGenerator({ onGenerate, onCancel }: AutoMatchGeneratorP
             type="number"
             value={rule.playersPerSide}
             onChange={(e) => setRule({ ...rule, playersPerSide: parseInt(e.target.value) || 1 })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-2 py-1.5 border border-gray-300 rounded-sm text-sm"
             min="1"
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -159,7 +159,7 @@ export function AutoMatchGenerator({ onGenerate, onCancel }: AutoMatchGeneratorP
                     maxMatchesPerPlayer: e.target.value ? parseInt(e.target.value) : undefined,
                   },
                 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-sm text-sm"
                 min="1"
                 placeholder="No limit"
               />
@@ -168,13 +168,13 @@ export function AutoMatchGenerator({ onGenerate, onCancel }: AutoMatchGeneratorP
         </div>
 
         {errors.preview && (
-          <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+          <div className="p-2 bg-red-100 border border-red-400 text-red-700 rounded-sm text-sm">
             {errors.preview}
           </div>
         )}
 
         {errors.generate && (
-          <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+          <div className="p-2 bg-red-100 border border-red-400 text-red-700 rounded-sm text-sm">
             {errors.generate}
           </div>
         )}
@@ -184,7 +184,7 @@ export function AutoMatchGenerator({ onGenerate, onCancel }: AutoMatchGeneratorP
             type="button"
             onClick={handlePreview}
             disabled={generating || !rule.rosterAId}
-            className={`px-4 py-2 rounded-md ${
+            className={`px-3 py-1.5 rounded-sm text-sm ${
               generating || !rule.rosterAId
                 ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700'
@@ -196,7 +196,7 @@ export function AutoMatchGenerator({ onGenerate, onCancel }: AutoMatchGeneratorP
             type="button"
             onClick={handleGenerate}
             disabled={previewMatches.length === 0}
-            className={`px-4 py-2 rounded-md ${
+            className={`px-3 py-1.5 rounded-sm text-sm ${
               previewMatches.length === 0
                 ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700'
@@ -207,18 +207,18 @@ export function AutoMatchGenerator({ onGenerate, onCancel }: AutoMatchGeneratorP
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-sm text-sm hover:bg-gray-300"
           >
             Cancel
           </button>
         </div>
 
         {previewMatches.length > 0 && (
-          <div className="border-t pt-4">
-            <h4 className="font-medium text-gray-700 mb-2">
+          <div className="border-t pt-3">
+            <h4 className="font-medium text-gray-700 mb-2 text-sm">
               Preview: {previewMatches.length} match{previewMatches.length !== 1 ? 'es' : ''} will be created
             </h4>
-            <div className="max-h-64 overflow-y-auto border border-gray-200 rounded p-2 bg-gray-50">
+            <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-sm p-2 bg-gray-50">
               <div className="space-y-1 text-sm">
                 {previewMatches.slice(0, 20).map((match, idx) => (
                   <div key={idx} className="text-gray-700">

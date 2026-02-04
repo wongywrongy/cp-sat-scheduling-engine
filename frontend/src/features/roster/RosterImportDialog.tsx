@@ -37,20 +37,20 @@ export function RosterImportDialog({ isOpen, onClose, onImport }: RosterImportDi
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Import Roster from CSV</h3>
+      <div className="bg-white rounded shadow p-4 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-base font-semibold">Import Roster from CSV</h3>
           <button
             type="button"
             onClick={() => setShowFormatGuide(!showFormatGuide)}
-            className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+            className="text-sm px-2 py-1 bg-blue-100 text-blue-700 rounded-sm hover:bg-blue-200"
           >
             {showFormatGuide ? 'Hide' : 'Show'} Format Guide
           </button>
         </div>
 
         {showFormatGuide && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+          <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-sm text-sm">
             <h4 className="font-semibold text-blue-900 mb-2">CSV Format Guide</h4>
             <div className="space-y-2 text-blue-800">
             <p><strong>Two Formats Supported:</strong></p>
@@ -94,21 +94,21 @@ export function RosterImportDialog({ isOpen, onClose, onImport }: RosterImportDi
         )}
 
         {error && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mb-3 p-2 bg-red-100 border border-red-400 text-red-700 rounded-sm text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mb-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               CSV Content
             </label>
             <textarea
               value={csvContent}
               onChange={(e) => setCsvContent(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
-              rows={12}
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-sm font-mono text-sm"
+              rows={10}
               placeholder="player1,John Doe,30,Team captain,09:00-12:00;14:00-18:00&#10;player2,Jane Smith,45,Injured knee,10:00-16:00&#10;player3,Bob Johnson,30,,&#10;player4,Alice Brown,60,Senior player"
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -120,7 +120,7 @@ export function RosterImportDialog({ isOpen, onClose, onImport }: RosterImportDi
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-sm text-sm hover:bg-gray-300"
               disabled={importing}
             >
               Cancel
@@ -128,7 +128,7 @@ export function RosterImportDialog({ isOpen, onClose, onImport }: RosterImportDi
             <button
               type="submit"
               disabled={importing}
-              className={`px-4 py-2 rounded-md text-white ${
+              className={`px-3 py-1.5 rounded-sm text-sm text-white ${
                 importing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
               }`}
             >

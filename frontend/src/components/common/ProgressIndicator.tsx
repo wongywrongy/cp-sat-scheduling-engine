@@ -37,9 +37,9 @@ export function ProgressIndicator({
   const gap = calculateGap();
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+    <div className="bg-blue-50 border border-blue-200 rounded p-3 space-y-2">
       {/* Status Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {status === 'solving' && (
           <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
         )}
@@ -57,7 +57,7 @@ export function ProgressIndicator({
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
         <div>
           <div className="text-gray-500 text-xs">Elapsed Time</div>
           <div className="font-semibold text-gray-900">{formatTime(displayElapsed)}</div>

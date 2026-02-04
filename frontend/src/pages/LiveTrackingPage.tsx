@@ -23,10 +23,10 @@ export default function LiveTrackingPage() {
 
   if (!schedule) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="bg-yellow-50 border border-yellow-400 text-yellow-800 px-6 py-4 rounded-lg">
-          <h3 className="font-semibold mb-2">No Schedule Generated</h3>
-          <p className="text-sm">
+      <div className="max-w-7xl mx-auto p-3">
+        <div className="bg-yellow-50 border border-yellow-400 text-yellow-800 px-3 py-2 rounded-sm text-sm">
+          <h3 className="font-semibold mb-1">No Schedule Generated</h3>
+          <p>
             Please generate a schedule first before using live tracking.
             Go to the <a href="/schedule" className="underline font-medium">Schedule page</a> to create one.
           </p>
@@ -38,11 +38,11 @@ export default function LiveTrackingPage() {
   const players = matches.map(m => m);
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-3 space-y-3">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Live Tournament Tracking</h1>
-        <p className="text-gray-600 mt-1">Track match status in real-time during tournament execution</p>
+        <h1 className="text-2xl font-bold text-gray-900">Live Tournament Tracking</h1>
+        <p className="text-gray-600 text-sm">Track match status in real-time during tournament execution</p>
       </div>
 
       {/* Current Time Indicator */}
@@ -58,16 +58,16 @@ export default function LiveTrackingPage() {
       />
 
       {/* Match Lists - Three Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* In Progress */}
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="bg-green-500 w-3 h-3 rounded-full"></span>
+          <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-1">
+            <span className="bg-green-500 w-2 h-2 rounded-full"></span>
             In Progress ({matchesByStatus.started.length})
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {matchesByStatus.started.length === 0 ? (
-              <div className="bg-gray-50 rounded-lg p-6 text-center text-gray-500 text-sm">
+              <div className="bg-gray-50 rounded p-3 text-center text-gray-500 text-sm">
                 No matches currently in progress
               </div>
             ) : (
@@ -87,11 +87,11 @@ export default function LiveTrackingPage() {
 
         {/* Up Next */}
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="bg-blue-500 w-3 h-3 rounded-full"></span>
+          <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-1">
+            <span className="bg-blue-500 w-2 h-2 rounded-full"></span>
             Up Next ({matchesByStatus.called.length + matchesByStatus.scheduled.slice(0, 5).length})
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {/* Called matches first */}
             {matchesByStatus.called.map((assignment) => (
               <MatchStatusCard
@@ -117,7 +117,7 @@ export default function LiveTrackingPage() {
             ))}
 
             {matchesByStatus.called.length === 0 && matchesByStatus.scheduled.length === 0 && (
-              <div className="bg-gray-50 rounded-lg p-6 text-center text-gray-500 text-sm">
+              <div className="bg-gray-50 rounded p-3 text-center text-gray-500 text-sm">
                 No upcoming matches
               </div>
             )}
@@ -126,13 +126,13 @@ export default function LiveTrackingPage() {
 
         {/* Recently Finished */}
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="bg-purple-500 w-3 h-3 rounded-full"></span>
+          <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-1">
+            <span className="bg-purple-500 w-2 h-2 rounded-full"></span>
             Recently Finished ({matchesByStatus.finished.slice(0, 5).length})
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {matchesByStatus.finished.slice(0, 5).length === 0 ? (
-              <div className="bg-gray-50 rounded-lg p-6 text-center text-gray-500 text-sm">
+              <div className="bg-gray-50 rounded p-3 text-center text-gray-500 text-sm">
                 No finished matches yet
               </div>
             ) : (
@@ -157,9 +157,9 @@ export default function LiveTrackingPage() {
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-            <p className="text-gray-700 mt-4">Loading...</p>
+          <div className="bg-white rounded shadow p-4">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="text-gray-700 mt-2 text-sm">Loading...</p>
           </div>
         </div>
       )}

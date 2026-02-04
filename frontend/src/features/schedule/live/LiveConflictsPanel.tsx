@@ -76,11 +76,11 @@ export function LiveConflictsPanel({
   }, [matchCount, prevMatchCount]);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 h-full">
+    <div className="bg-white rounded border border-gray-200 p-2 h-full">
       {/* Compact top section: status + counts */}
-      <div className={`mb-3 pb-3 border-b border-gray-100 transition-all duration-300 ${matchCountFlash ? 'bg-blue-50 -mx-4 px-4 -mt-4 pt-4 rounded-t-lg' : ''}`}>
+      <div className={`mb-2 pb-2 border-b border-gray-100 transition-all duration-300 ${matchCountFlash ? 'bg-blue-50 -mx-2 px-2 -mt-2 pt-2 rounded-t' : ''}`}>
         {/* Status row */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             {status === 'solving' && (
               <>
@@ -130,7 +130,7 @@ export function LiveConflictsPanel({
       </div>
 
       {/* Violations by type with staggered animation */}
-      <div className="space-y-2">
+      <div className="space-y-1">
         <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">By Type</h4>
         {allTypes.map((type, index) => {
           const count = byType[type] || 0;
@@ -140,7 +140,7 @@ export function LiveConflictsPanel({
           return (
             <div
               key={type}
-              className={`flex items-center justify-between p-2 rounded-lg transition-all duration-300 ${
+              className={`flex items-center justify-between p-1.5 rounded transition-all duration-300 ${
                 isViolated ? 'bg-red-50' : 'bg-gray-50'
               }`}
               style={{ animationDelay: `${index * 50}ms` }}

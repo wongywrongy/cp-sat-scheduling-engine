@@ -137,7 +137,7 @@ export function BulkRankAssignDialog({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded bg-white p-4 text-left align-middle shadow transition-all">
                 <Dialog.Title
                   as="h3"
                   className="text-lg font-medium leading-6 text-gray-900"
@@ -145,13 +145,13 @@ export function BulkRankAssignDialog({
                   Assign Ranks to {selectedPlayerIds.length} Player{selectedPlayerIds.length !== 1 ? 's' : ''}
                 </Dialog.Title>
 
-                <div className="mt-4">
+                <div className="mt-3">
                   {/* Mode Selection */}
                   <RadioGroup value={mode} onChange={setMode}>
                     <RadioGroup.Label className="text-sm font-medium text-gray-700">
                       Mode:
                     </RadioGroup.Label>
-                    <div className="mt-2 grid grid-cols-3 gap-3">
+                    <div className="mt-2 grid grid-cols-3 gap-2">
                       {MODES.map((m) => (
                         <RadioGroup.Option
                           key={m.value}
@@ -159,7 +159,7 @@ export function BulkRankAssignDialog({
                           className={({ active, checked }) =>
                             `${active ? 'ring-2 ring-blue-500 ring-offset-2' : ''}
                             ${checked ? 'bg-blue-600 text-white' : 'bg-white text-gray-900'}
-                            relative flex cursor-pointer rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:outline-none`
+                            relative flex cursor-pointer rounded-sm border border-gray-300 px-2 py-1.5 shadow-sm focus:outline-none`
                           }
                         >
                           {({ checked }) => (
@@ -189,21 +189,21 @@ export function BulkRankAssignDialog({
 
                   {/* Warnings */}
                   {playersWithoutSchool.length > 0 && (
-                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800 flex items-start gap-2">
+                    <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-sm text-sm text-yellow-800 flex items-start gap-2">
                       <span className="w-2 h-2 rounded-full bg-yellow-500 mt-1 flex-shrink-0" />
                       {playersWithoutSchool.length} player{playersWithoutSchool.length !== 1 ? 's have' : ' has'} no school and will be skipped.
                     </div>
                   )}
 
                   {!singleSchool && schools.size > 1 && (
-                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800 flex items-start gap-2">
+                    <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-sm text-sm text-blue-800 flex items-start gap-2">
                       <span className="w-2 h-2 rounded-full bg-blue-500 mt-1 flex-shrink-0" />
                       Selected players are from {schools.size} different schools. Conflicts will be checked per-school.
                     </div>
                   )}
 
                   {/* Rank Selection */}
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Select Ranks:
                     </label>
@@ -224,17 +224,17 @@ export function BulkRankAssignDialog({
                   </div>
                 </div>
 
-                <div className="mt-6 flex gap-3 justify-end">
+                <div className="mt-4 flex gap-2 justify-end">
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="inline-flex justify-center rounded-sm border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onClick={onClose}
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="inline-flex justify-center rounded-sm border border-transparent bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
                     onClick={handleConfirm}
                   >
                     Apply

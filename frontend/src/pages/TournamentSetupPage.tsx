@@ -46,23 +46,23 @@ export function TournamentSetupPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Tournament Setup</h2>
+      <h2 className="text-2xl font-bold mb-3">Tournament Setup</h2>
 
       {isNewTournament && (
-        <div className="mb-4 p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded">
+        <div className="mb-2 p-2 bg-blue-100 border border-blue-400 text-blue-700 rounded-sm text-sm">
           <p className="font-semibold">New Tournament</p>
-          <p className="text-sm">Configure your tournament settings below. The tournament will be created when you save.</p>
+          <p>Configure your tournament settings below. The tournament will be created when you save.</p>
         </div>
       )}
 
       {error && !isNewTournament && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded-sm text-sm">
           {error}
         </div>
       )}
 
       {saveError && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded-sm text-sm">
           {saveError}
         </div>
       )}
@@ -73,7 +73,7 @@ export function TournamentSetupPage() {
         saving={saving}
       />
 
-      <div className="mt-6">
+      <div className="mt-3">
         <TournamentFileManagement />
       </div>
     </div>

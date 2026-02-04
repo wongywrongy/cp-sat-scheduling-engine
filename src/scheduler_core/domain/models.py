@@ -5,7 +5,7 @@ They mirror the API schemas but are independent of FastAPI.
 """
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 
 class SolverStatus(str, Enum):
@@ -67,6 +67,12 @@ class ScheduleConfig:
     court_change_penalty: float = 0.5
     enable_court_utilization: bool = True
     court_utilization_penalty: float = 50.0
+
+    # Game proximity constraint
+    enable_game_proximity: bool = False
+    min_game_spacing_slots: Optional[int] = None
+    max_game_spacing_slots: Optional[int] = None
+    game_proximity_penalty: float = 5.0
 
 
 @dataclass

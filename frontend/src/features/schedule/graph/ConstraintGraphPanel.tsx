@@ -49,9 +49,9 @@ export function ConstraintGraphPanel({
 
   if (assignments.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-lg p-8">
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded p-4">
         <div className="text-center">
-          <div className="text-4xl mb-2">🔄</div>
+          <div className="text-2xl mb-2">...</div>
           <div className="text-gray-500 text-sm">
             {isRealtime ? 'Waiting for first solution...' : 'No assignments to visualize'}
           </div>
@@ -61,9 +61,9 @@ export function ConstraintGraphPanel({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+      <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-gray-900">Constraint Graph</h3>
           {isRealtime && (
@@ -81,16 +81,16 @@ export function ConstraintGraphPanel({
       {/* Content */}
       <div className="flex">
         {/* Graph area */}
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-3">
           <ConstraintGraph
             data={graphData}
             width={480}
-            height={320}
+            height={280}
           />
         </div>
 
         {/* Side panel */}
-        <div className="border-l border-gray-200 p-4 bg-gray-50">
+        <div className="border-l border-gray-200 p-3 bg-gray-50">
           <ViolationSummaryPanel
             violations={violations}
             elapsed={elapsed}

@@ -88,7 +88,7 @@ export function SchedulePage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-3">
         <h2 className="text-2xl font-bold">Schedule</h2>
         <ScheduleActions
           onGenerate={handleGenerate}
@@ -100,21 +100,21 @@ export function SchedulePage() {
       </div>
 
       {needsConfig && (
-        <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
+        <div className="mb-2 p-2 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-sm text-sm">
           <p className="font-semibold">Tournament configuration needed</p>
-          <p className="text-sm">Please configure your tournament settings in <Link to="/setup" className="underline">Tournament Setup</Link> to generate schedules.</p>
+          <p>Please configure your tournament settings in <Link to="/setup" className="underline">Tournament Setup</Link> to generate schedules.</p>
         </div>
       )}
 
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded-sm text-sm">
           {error}
         </div>
       )}
 
       {/* Live Schedule Grid - shown during optimization AND after completion */}
       {showVisualization && displayAssignments.length > 0 && (
-        <div className="mb-6">
+        <div className="mb-3">
           <LiveScheduleGrid
             assignments={displayAssignments}
             matches={matches}
@@ -132,7 +132,7 @@ export function SchedulePage() {
 
       {/* Starting optimization spinner */}
       {isOptimizing && !hasLiveProgress && (
-        <div className="flex flex-col items-center justify-center h-64 gap-4 mb-6">
+        <div className="flex flex-col items-center justify-center h-48 gap-2 mb-3">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <div className="text-gray-500">Starting optimization...</div>
         </div>
@@ -142,10 +142,10 @@ export function SchedulePage() {
       {schedule && config && !isOptimizing && (
         <>
           {/* View Toggle Buttons */}
-          <div className="mb-4 flex gap-2">
+          <div className="mb-2 flex gap-1">
             <button
               onClick={() => setView('timeslot')}
-              className={`px-4 py-2 rounded-md ${
+              className={`px-3 py-1.5 rounded-sm text-sm ${
                 view === 'timeslot'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -155,7 +155,7 @@ export function SchedulePage() {
             </button>
             <button
               onClick={() => setView('court')}
-              className={`px-4 py-2 rounded-md ${
+              className={`px-3 py-1.5 rounded-sm text-sm ${
                 view === 'court'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -176,7 +176,7 @@ export function SchedulePage() {
 
       {/* Empty state */}
       {!schedule && !isOptimizing && !finalProgress && (
-        <div className="p-8 bg-white rounded-lg shadow text-center text-gray-500">
+        <div className="p-4 bg-white rounded shadow-sm text-center text-gray-500 text-sm">
           {needsConfig ? (
             <p>Configure tournament settings first, then click "Generate Schedule" to create a schedule</p>
           ) : (

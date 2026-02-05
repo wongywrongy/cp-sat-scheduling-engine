@@ -198,17 +198,12 @@ def _convert_to_schedule_config(config: TournamentConfig) -> ScheduleConfig:
     start_minutes = _time_to_minutes(config.dayStart)
     end_minutes = _time_to_minutes(config.dayEnd)
 
-    print(f"DEBUG: dayStart={config.dayStart}, dayEnd={config.dayEnd}")
-    print(f"DEBUG: start_minutes={start_minutes}, end_minutes={end_minutes}")
-
     # If end time is before start time, it's an overnight schedule (crosses midnight)
     if end_minutes <= start_minutes:
-        print(f"DEBUG: Overnight schedule detected, adding 24 hours")
         end_minutes += 24 * 60  # Add 24 hours
 
     total_minutes = end_minutes - start_minutes
     total_slots = total_minutes // config.intervalMinutes
-    print(f"DEBUG: total_minutes={total_minutes}, total_slots={total_slots}, interval={config.intervalMinutes}")
 
     # Calculate default rest slots
     default_rest_slots = config.defaultRestMinutes // config.intervalMinutes

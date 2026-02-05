@@ -2,9 +2,189 @@ import { Link } from 'react-router-dom';
 import { useSchedule } from '../hooks/useSchedule';
 import { useTournament } from '../hooks/useTournament';
 import { useAppStore } from '../store/appStore';
-import { ScheduleView } from '../features/schedule/ScheduleView';
+import { useSmoothedAssignments } from '../hooks/useSmoothedAssignments';
 import { ScheduleActions } from '../features/schedule/ScheduleActions';
-import { LiveScheduleGrid } from '../features/schedule/live';
+import { LiveTimelineGrid } from '../features/schedule/live/LiveTimelineGrid';
+import { SolverProgressLog } from '../features/schedule/live/SolverProgressLog';
+import { LiveMetricsBar } from '../features/schedule/live/LiveMetricsBar';
+import { computeConstraintViolations } from '../utils/constraintChecker';
+import { formatSlotTime } from '../utils/timeUtils';
+import { useMemo, useState } from 'react';
+import type { ScheduleAssignment, MatchDTO, TournamentConfig } from '../api/dto';
+
+type TableView = 'time' | 'court';
+
+// Matches table component with time/court view toggle
+function MatchesTable({
+  assignments,
+  matches,
+  config,
+  view,
+  onViewChange,
+}: {
+  assignments: ScheduleAssignment[];
+  matches: MatchDTO[];
+  config: TournamentConfig;
+  view: TableView;
+  onViewChange: (view: TableView) => void;
+}) {
+  const matchMap = useMemo(() => new Map(matches.map(m => [m.id, m])), [matches]);
+
+  const getMatchLabel = (matchId: string): string => {
+    const match = matchMap.get(matchId);
+    if (!match) return matchId.slice(0, 6);
+    if (match.matchNumber) return `M${match.matchNumber}`;
+    if (match.eventRank) return match.eventRank;
+    return matchId.slice(0, 6);
+  };
+
+  const getEventBg = (matchId: string): string => {
+    const match = matchMap.get(matchId);
+    const eventType = match?.eventRank?.replace(/[0-9]/g, '') || '';
+    switch (eventType) {
+      case 'MS': return 'bg-blue-50';
+      case 'WS': return 'bg-pink-50';
+      case 'MD': return 'bg-green-50';
+      case 'WD': return 'bg-purple-50';
+      case 'XD': return 'bg-orange-50';
+      default: return 'bg-gray-50';
+    }
+  };
+
+  // Group by time slot
+  const byTime = useMemo(() => {
+    const groups = new Map<number, ScheduleAssignment[]>();
+    for (const a of assignments) {
+      const list = groups.get(a.slotId) || [];
+      list.push(a);
+      groups.set(a.slotId, list);
+    }
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([slotId, items]) => ({
+        slotId,
+        time: formatSlotTime(slotId, config),
+        assignments: items.sort((a, b) => a.courtId - b.courtId),
+      }));
+  }, [assignments, config]);
+
+  // Group by court
+  const byCourt = useMemo(() => {
+    const groups = new Map<number, ScheduleAssignment[]>();
+    for (const a of assignments) {
+      const list = groups.get(a.courtId) || [];
+      list.push(a);
+      groups.set(a.courtId, list);
+    }
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([courtId, items]) => ({
+        courtId,
+        assignments: items.sort((a, b) => a.slotId - b.slotId),
+      }));
+  }, [assignments]);
+
+  if (assignments.length === 0) {
+    return <div className="text-xs text-gray-400 italic p-2">No matches scheduled yet</div>;
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* View toggle */}
+      <div className="flex items-center gap-1 mb-2 flex-shrink-0">
+        <button
+          onClick={() => onViewChange('time')}
+          className={`px-2 py-0.5 text-xs rounded ${
+            view === 'time'
+              ? 'bg-gray-700 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          By Time
+        </button>
+        <button
+          onClick={() => onViewChange('court')}
+          className={`px-2 py-0.5 text-xs rounded ${
+            view === 'court'
+              ? 'bg-gray-700 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          By Court
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="flex-1 overflow-auto">
+        {view === 'time' ? (
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 bg-gray-100">
+              <tr>
+                <th className="text-left px-2 py-1 font-medium text-gray-600">Time</th>
+                <th className="text-left px-2 py-1 font-medium text-gray-600">Matches</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byTime.map(({ slotId, time, assignments: slotAssignments }) => (
+                <tr key={slotId} className="border-t border-gray-100">
+                  <td className="px-2 py-1 text-gray-500 font-mono whitespace-nowrap align-top">
+                    {time}
+                  </td>
+                  <td className="px-2 py-1">
+                    <div className="flex flex-wrap gap-1">
+                      {slotAssignments.map((a) => (
+                        <span
+                          key={a.matchId}
+                          className={`px-1.5 py-0.5 rounded ${getEventBg(a.matchId)}`}
+                          title={`Court ${a.courtId}, ${a.durationSlots} slots`}
+                        >
+                          <span className="font-medium text-gray-700">{getMatchLabel(a.matchId)}</span>
+                          <span className="text-gray-400 ml-1">C{a.courtId}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 bg-gray-100">
+              <tr>
+                <th className="text-left px-2 py-1 font-medium text-gray-600">Court</th>
+                <th className="text-left px-2 py-1 font-medium text-gray-600">Matches (by time)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byCourt.map(({ courtId, assignments: courtAssignments }) => (
+                <tr key={courtId} className="border-t border-gray-100">
+                  <td className="px-2 py-1 text-gray-600 font-medium whitespace-nowrap align-top">
+                    Court {courtId}
+                  </td>
+                  <td className="px-2 py-1">
+                    <div className="flex flex-wrap gap-1">
+                      {courtAssignments.map((a) => (
+                        <span
+                          key={a.matchId}
+                          className={`px-1.5 py-0.5 rounded ${getEventBg(a.matchId)}`}
+                          title={`${formatSlotTime(a.slotId, config)}, ${a.durationSlots} slots`}
+                        >
+                          <span className="font-medium text-gray-700">{getMatchLabel(a.matchId)}</span>
+                          <span className="text-gray-400 ml-1">{formatSlotTime(a.slotId, config)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function SchedulePage() {
   const { config, loading: configLoading, error: configError } = useTournament();
@@ -15,8 +195,6 @@ export function SchedulePage() {
     schedule,
     loading,
     error,
-    view,
-    setView,
     generateSchedule,
     reoptimizeSchedule,
     generationProgress,
@@ -65,128 +243,152 @@ export function SchedulePage() {
   // Determine what to show for visualization
   const hasLiveProgress = isOptimizing && generationProgress?.current_assignments && generationProgress.current_assignments.length > 0;
 
-  // Use live progress during optimization, or stored stats after completion, or schedule assignments
-  const displayAssignments = hasLiveProgress
+  // Raw assignments from backend (live progress or stored)
+  const rawAssignments = hasLiveProgress
     ? generationProgress.current_assignments
     : (scheduleStats?.assignments || schedule?.assignments || []);
 
+  // Smooth assignments for consistent animation during generation
+  const displayAssignments = useSmoothedAssignments(rawAssignments, isOptimizing, {
+    releaseInterval: 40, // 40ms between each assignment appearing
+    enabled: true,
+  });
+
   const showVisualization = config && (hasLiveProgress || scheduleStats || schedule);
 
+  // Compute violations for log
+  const violations = useMemo(
+    () => config ? computeConstraintViolations(displayAssignments, matches, players, config) : [],
+    [displayAssignments, matches, players, config]
+  );
+
+  const status = isOptimizing ? 'solving' : 'complete';
+  const elapsed = hasLiveProgress ? generationProgress.elapsed_ms : (scheduleStats?.elapsed || 0);
+  const solutionCount = hasLiveProgress ? generationProgress.solution_count : scheduleStats?.solutionCount;
+  const objectiveScore = hasLiveProgress ? generationProgress.current_objective : (scheduleStats?.objectiveScore || schedule?.objectiveScore || undefined);
+  const bestBound = hasLiveProgress ? generationProgress.best_bound : scheduleStats?.bestBound;
+
   return (
-    <div className="max-w-7xl mx-auto space-y-3">
+    <div className="w-full h-[calc(100vh-56px)] flex flex-col px-2 py-1 gap-2">
+      {/* Alerts */}
       {needsConfig && (
-        <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded text-sm">
-          <p className="font-medium">Tournament configuration needed</p>
-          <p>Please configure your tournament settings in <Link to="/setup" className="underline hover:text-yellow-900">Tournament Setup</Link> to generate schedules.</p>
+        <div className="p-2 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded text-xs flex-shrink-0">
+          <span className="font-medium">Config needed:</span>{' '}
+          <Link to="/setup" className="underline hover:text-yellow-900">Tournament Setup</Link>
         </div>
       )}
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+        <div className="p-2 bg-red-50 border border-red-200 text-red-700 rounded text-xs flex-shrink-0">
           {error}
         </div>
       )}
 
-      {/* Infeasible schedule warning */}
       {schedule?.status === 'infeasible' && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm">
-          <p className="font-medium text-red-800 mb-2">Schedule is Infeasible</p>
-          <p className="text-red-700 mb-2">The solver could not find a valid schedule with the current configuration.</p>
+        <div className="p-2 bg-red-50 border border-red-200 rounded text-xs flex-shrink-0">
+          <span className="font-medium text-red-800">Infeasible:</span>{' '}
+          <span className="text-red-700">{schedule.infeasibleReasons?.length || 0} constraint violations.</span>
           {schedule.infeasibleReasons && schedule.infeasibleReasons.length > 0 && (
-            <details className="mt-2">
-              <summary className="cursor-pointer text-red-600 hover:text-red-800">
-                View {schedule.infeasibleReasons.length} constraint violations
-              </summary>
-              <ul className="mt-2 pl-4 space-y-1 text-red-600 text-xs max-h-48 overflow-y-auto">
-                {schedule.infeasibleReasons.map((reason, i) => (
+            <details className="mt-1">
+              <summary className="cursor-pointer text-red-600 hover:text-red-800">View details</summary>
+              <ul className="mt-1 pl-3 text-red-600 max-h-24 overflow-y-auto">
+                {schedule.infeasibleReasons.slice(0, 10).map((reason, i) => (
                   <li key={i}>{reason}</li>
                 ))}
+                {schedule.infeasibleReasons.length > 10 && (
+                  <li>...and {schedule.infeasibleReasons.length - 10} more</li>
+                )}
               </ul>
             </details>
           )}
-          <p className="mt-3 text-red-700 text-xs">
-            Try: Extending tournament hours, adding more courts, or reducing player constraints.
-          </p>
         </div>
       )}
 
-      {/* Live Schedule Grid - shown during optimization AND after completion */}
-      {showVisualization && displayAssignments.length > 0 && (
-        <LiveScheduleGrid
-            assignments={displayAssignments}
-            matches={matches}
-            players={players}
-            config={config!}
-            elapsed={hasLiveProgress ? generationProgress.elapsed_ms : (scheduleStats?.elapsed || 0)}
-            solutionCount={hasLiveProgress ? generationProgress.solution_count : scheduleStats?.solutionCount}
-            objectiveScore={hasLiveProgress ? generationProgress.current_objective : (scheduleStats?.objectiveScore || schedule?.objectiveScore || undefined)}
-            bestBound={hasLiveProgress ? generationProgress.best_bound : scheduleStats?.bestBound}
-            status={isOptimizing ? 'solving' : 'complete'}
-            totalMatches={matches.length}
-            onGenerate={handleGenerate}
-            onReoptimize={handleReoptimize}
-            generating={isOptimizing}
-            reoptimizing={isOptimizing}
-            hasSchedule={!!schedule}
-          />
-      )}
+      {/* Main content */}
+      {showVisualization && displayAssignments.length > 0 && config ? (
+        <div className="flex-1 min-h-0 flex gap-2">
+          {/* Main area - Grid + Matches list */}
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            {/* Grid container */}
+            <div className="bg-white rounded border border-gray-200 flex flex-col overflow-hidden">
+              {/* Header with metrics and actions */}
+              <div className="px-2 py-1.5 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+                <LiveMetricsBar
+                  elapsed={elapsed}
+                  solutionCount={solutionCount}
+                  objectiveScore={objectiveScore}
+                  bestBound={bestBound}
+                  status={status}
+                />
+                <ScheduleActions
+                  onGenerate={handleGenerate}
+                  onReoptimize={handleReoptimize}
+                  generating={isOptimizing}
+                  reoptimizing={isOptimizing}
+                  hasSchedule={!!schedule}
+                />
+              </div>
 
-      {/* Starting optimization spinner */}
-      {isOptimizing && !hasLiveProgress && (
-        <div className="flex flex-col items-center justify-center h-48 gap-2 bg-white rounded border border-gray-200">
-          <div className="w-10 h-10 border-4 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-          <div className="text-gray-500 text-sm">Starting optimization...</div>
-        </div>
-      )}
+              {/* Timeline Grid */}
+              <div className="p-2 overflow-auto">
+                <LiveTimelineGrid
+                  assignments={displayAssignments}
+                  matches={matches}
+                  players={players}
+                  config={config}
+                  status={status}
+                />
+              </div>
+            </div>
 
-      {/* Schedule details section - shown after schedule is generated (not if infeasible) */}
-      {schedule && schedule.status !== 'infeasible' && config && !isOptimizing && (
-        <div className="bg-white rounded border border-gray-200">
-          {/* Header with view toggle */}
-          <div className="px-3 py-2 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setView('timeslot')}
-                className={`px-2 py-1 text-xs rounded ${
-                  view === 'timeslot'
-                    ? 'bg-gray-100 text-gray-800 font-medium'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Time-Slot View
-              </button>
-              <button
-                onClick={() => setView('court')}
-                className={`px-2 py-1 text-xs rounded ${
-                  view === 'court'
-                    ? 'bg-gray-100 text-gray-800 font-medium'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Court View
-              </button>
+            {/* Matches list - below grid */}
+            <div className="flex-1 min-h-0 bg-white rounded border border-gray-200 flex flex-col overflow-hidden">
+              <div className="px-2 py-1.5 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Matches</span>
+                <span className="text-xs text-gray-400">{displayAssignments.length}/{matches.length}</span>
+              </div>
+              <div className="flex-1 min-h-0 p-2 overflow-auto">
+                <MatchesList
+                  assignments={displayAssignments}
+                  matches={matches}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Schedule content */}
-          <ScheduleView
-            schedule={schedule}
-            view={view}
-            config={config}
-          />
+          {/* Log - sidebar */}
+          <div className="w-56 flex-shrink-0 bg-white rounded border border-gray-200 flex flex-col overflow-hidden">
+            <div className="px-2 py-1.5 border-b border-gray-200 flex-shrink-0">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Log</span>
+            </div>
+            <div className="flex-1 min-h-0 p-2 overflow-auto">
+              <SolverProgressLog
+                solutionCount={solutionCount}
+                objectiveScore={objectiveScore}
+                matchCount={displayAssignments.length}
+                totalMatches={matches.length}
+                status={status}
+                violations={violations}
+              />
+            </div>
+          </div>
         </div>
-      )}
-
-      {/* Empty state - also show when schedule is infeasible */}
-      {(!schedule || schedule?.status === 'infeasible') && !isOptimizing && !scheduleStats && (
-        <div className="flex flex-col items-center justify-center py-16 bg-white rounded border border-gray-200">
+      ) : isOptimizing && !hasLiveProgress ? (
+        /* Starting optimization spinner */
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 bg-white rounded border border-gray-200">
+          <div className="w-8 h-8 border-3 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+          <div className="text-gray-500 text-sm">Starting optimization...</div>
+        </div>
+      ) : (
+        /* Empty state */
+        <div className="flex-1 flex flex-col items-center justify-center bg-white rounded border border-gray-200">
           <div className="text-gray-400 mb-3">
-            <svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <p className="text-sm text-gray-600 mb-4">
-            {needsConfig ? 'Configure tournament settings first to generate a schedule.' : 'No schedule generated yet.'}
+          <p className="text-sm text-gray-600 mb-3">
+            {needsConfig ? 'Configure tournament first.' : 'No schedule generated.'}
           </p>
           <ScheduleActions
             onGenerate={handleGenerate}

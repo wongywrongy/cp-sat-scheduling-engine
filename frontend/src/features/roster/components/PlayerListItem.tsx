@@ -39,26 +39,30 @@ export function PlayerListItem({
   onEdit,
   onDelete,
 }: PlayerListItemProps) {
+  const currentSchool = schools.find(s => s.id === player.groupId);
+  const schoolColor = currentSchool?.metadata?.color;
+
   return (
-    <tr className={`${isSelected ? 'bg-gray-100' : 'hover:bg-gray-50'}`}>
+    <tr className={`border-t border-gray-100 hover:bg-gray-50 ${isSelected ? 'bg-gray-100' : ''}`}>
       {/* Checkbox Column */}
-      <td className="px-3 py-2">
+      <td className="px-2 py-1">
         <input
           type="checkbox"
           checked={isSelected}
           onChange={onToggleSelect}
-          className="w-4 h-4 text-gray-800 border-gray-300 rounded focus:ring-gray-500"
+          className="w-3.5 h-3.5 text-gray-800 border-gray-300 rounded focus:ring-gray-500"
           aria-label={`Select ${player.name}`}
         />
       </td>
 
       {/* Player Name Column */}
-      <td className="px-3 py-2">
-        <span className="font-medium text-gray-800">{player.name}</span>
-      </td>
+      <td className="px-2 py-1 font-medium text-gray-700">{player.name}</td>
 
-      {/* School Column */}
-      <td className="px-3 py-2">
+      {/* School Column - colored cell background */}
+      <td
+        className="px-2 py-1 text-gray-600"
+        style={schoolColor ? { backgroundColor: `${schoolColor}15` } : undefined}
+      >
         <SchoolBadgeEditor
           currentSchoolId={player.groupId}
           schools={schools}
@@ -67,7 +71,7 @@ export function PlayerListItem({
       </td>
 
       {/* Events/Ranks Column */}
-      <td className="px-3 py-2">
+      <td className="px-2 py-1 text-gray-600">
         <RankBadgeEditor
           currentRanks={player.ranks || []}
           schoolId={player.groupId}
@@ -78,12 +82,12 @@ export function PlayerListItem({
       </td>
 
       {/* Actions Column */}
-      <td className="px-3 py-2 text-right">
+      <td className="px-2 py-1 text-right">
         <Menu as="div" className="relative inline-block text-left">
-          <Menu.Button className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 rounded">
+          <Menu.Button className="inline-flex items-center justify-center w-6 h-6 text-gray-400 hover:text-gray-600 focus:outline-none rounded">
             <span className="sr-only">Open menu</span>
             <svg
-              className="w-5 h-5"
+              className="w-4 h-4"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -91,18 +95,18 @@ export function PlayerListItem({
             </svg>
           </Menu.Button>
 
-          <Menu.Items className="absolute right-0 z-10 mt-1 w-40 origin-top-right rounded bg-white shadow-sm ring-1 ring-black ring-opacity-5 focus:outline-none">
-            <div className="py-1">
+          <Menu.Items className="absolute right-0 z-10 mt-1 w-32 origin-top-right rounded bg-white shadow-sm ring-1 ring-black ring-opacity-5 focus:outline-none">
+            <div className="py-0.5">
               <Menu.Item>
                 {({ active }) => (
                   <button
                     onClick={onEdit}
                     className={`${
                       active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
-                    } group flex w-full items-center px-4 py-2 text-sm`}
+                    } group flex w-full items-center px-3 py-1.5 text-xs`}
                   >
                     <svg
-                      className="mr-3 h-4 w-4 text-gray-400"
+                      className="mr-2 h-3.5 w-3.5 text-gray-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -114,7 +118,7 @@ export function PlayerListItem({
                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                       />
                     </svg>
-                    Advanced Edit
+                    Edit
                   </button>
                 )}
               </Menu.Item>
@@ -125,10 +129,10 @@ export function PlayerListItem({
                     onClick={onDelete}
                     className={`${
                       active ? 'bg-red-50 text-red-900' : 'text-red-700'
-                    } group flex w-full items-center px-4 py-2 text-sm`}
+                    } group flex w-full items-center px-3 py-1.5 text-xs`}
                   >
                     <svg
-                      className="mr-3 h-4 w-4 text-red-400"
+                      className="mr-2 h-3.5 w-3.5 text-red-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"

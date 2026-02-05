@@ -10,7 +10,7 @@ import { LiveMetricsBar } from '../features/schedule/live/LiveMetricsBar';
 import { computeConstraintViolations } from '../utils/constraintChecker';
 import { formatSlotTime } from '../utils/timeUtils';
 import { useMemo, useState } from 'react';
-import type { ScheduleAssignment, MatchDTO, TournamentConfig } from '../api/dto';
+import type { ScheduleAssignment, MatchDTO, PlayerDTO, TournamentConfig } from '../api/dto';
 
 type TableView = 'time' | 'court';
 
@@ -18,17 +18,20 @@ type TableView = 'time' | 'court';
 function MatchesTable({
   assignments,
   matches,
+  players,
   config,
   view,
   onViewChange,
 }: {
   assignments: ScheduleAssignment[];
   matches: MatchDTO[];
+  players: PlayerDTO[];
   config: TournamentConfig;
   view: TableView;
   onViewChange: (view: TableView) => void;
 }) {
   const matchMap = useMemo(() => new Map(matches.map(m => [m.id, m])), [matches]);
+  const playerMap = useMemo(() => new Map(players.map(p => [p.id, p])), [players]);
 
   const getMatchLabel = (matchId: string): string => {
     const match = matchMap.get(matchId);
@@ -38,17 +41,12 @@ function MatchesTable({
     return matchId.slice(0, 6);
   };
 
-  const getEventBg = (matchId: string): string => {
+  const getPlayerNames = (matchId: string): string => {
     const match = matchMap.get(matchId);
-    const eventType = match?.eventRank?.replace(/[0-9]/g, '') || '';
-    switch (eventType) {
-      case 'MS': return 'bg-blue-50';
-      case 'WS': return 'bg-pink-50';
-      case 'MD': return 'bg-green-50';
-      case 'WD': return 'bg-purple-50';
-      case 'XD': return 'bg-orange-50';
-      default: return 'bg-gray-50';
-    }
+    if (!match) return '';
+    const sideA = match.sideA?.map(id => playerMap.get(id)?.name || '?').join('/') || '?';
+    const sideB = match.sideB?.map(id => playerMap.get(id)?.name || '?').join('/') || '?';
+    return `${sideA} vs ${sideB}`;
   };
 
   // Group by time slot
@@ -120,64 +118,54 @@ function MatchesTable({
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-gray-100">
               <tr>
-                <th className="text-left px-2 py-1 font-medium text-gray-600">Time</th>
-                <th className="text-left px-2 py-1 font-medium text-gray-600">Matches</th>
+                <th className="text-left px-2 py-1 font-medium text-gray-600 w-14">Time</th>
+                <th className="text-left px-2 py-1 font-medium text-gray-600 w-8">Ct</th>
+                <th className="text-left px-2 py-1 font-medium text-gray-600 w-12">Match</th>
+                <th className="text-left px-2 py-1 font-medium text-gray-600">Players</th>
               </tr>
             </thead>
             <tbody>
-              {byTime.map(({ slotId, time, assignments: slotAssignments }) => (
-                <tr key={slotId} className="border-t border-gray-100">
-                  <td className="px-2 py-1 text-gray-500 font-mono whitespace-nowrap align-top">
-                    {time}
-                  </td>
-                  <td className="px-2 py-1">
-                    <div className="flex flex-wrap gap-1">
-                      {slotAssignments.map((a) => (
-                        <span
-                          key={a.matchId}
-                          className={`px-1.5 py-0.5 rounded ${getEventBg(a.matchId)}`}
-                          title={`Court ${a.courtId}, ${a.durationSlots} slots`}
-                        >
-                          <span className="font-medium text-gray-700">{getMatchLabel(a.matchId)}</span>
-                          <span className="text-gray-400 ml-1">C{a.courtId}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {byTime.flatMap(({ slotId, time, assignments: slotAssignments }) =>
+                slotAssignments.map((a, idx) => (
+                  <tr key={a.matchId} className={`hover:bg-gray-50 ${idx === 0 ? 'border-t-2 border-gray-300' : 'border-t border-gray-100'}`}>
+                    <td className="px-2 py-1 text-gray-500 font-mono whitespace-nowrap">
+                      {idx === 0 ? time : ''}
+                    </td>
+                    <td className="px-2 py-1 text-gray-500">C{a.courtId}</td>
+                    <td className="px-2 py-1 font-medium text-gray-700">{getMatchLabel(a.matchId)}</td>
+                    <td className="px-2 py-1 text-gray-600 truncate max-w-xs" title={getPlayerNames(a.matchId)}>
+                      {getPlayerNames(a.matchId)}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         ) : (
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-gray-100">
               <tr>
-                <th className="text-left px-2 py-1 font-medium text-gray-600">Court</th>
-                <th className="text-left px-2 py-1 font-medium text-gray-600">Matches (by time)</th>
+                <th className="text-left px-2 py-1 font-medium text-gray-600 w-12">Court</th>
+                <th className="text-left px-2 py-1 font-medium text-gray-600 w-14">Time</th>
+                <th className="text-left px-2 py-1 font-medium text-gray-600 w-12">Match</th>
+                <th className="text-left px-2 py-1 font-medium text-gray-600">Players</th>
               </tr>
             </thead>
             <tbody>
-              {byCourt.map(({ courtId, assignments: courtAssignments }) => (
-                <tr key={courtId} className="border-t border-gray-100">
-                  <td className="px-2 py-1 text-gray-600 font-medium whitespace-nowrap align-top">
-                    Court {courtId}
-                  </td>
-                  <td className="px-2 py-1">
-                    <div className="flex flex-wrap gap-1">
-                      {courtAssignments.map((a) => (
-                        <span
-                          key={a.matchId}
-                          className={`px-1.5 py-0.5 rounded ${getEventBg(a.matchId)}`}
-                          title={`${formatSlotTime(a.slotId, config)}, ${a.durationSlots} slots`}
-                        >
-                          <span className="font-medium text-gray-700">{getMatchLabel(a.matchId)}</span>
-                          <span className="text-gray-400 ml-1">{formatSlotTime(a.slotId, config)}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {byCourt.flatMap(({ courtId, assignments: courtAssignments }) =>
+                courtAssignments.map((a, idx) => (
+                  <tr key={a.matchId} className={`hover:bg-gray-50 ${idx === 0 ? 'border-t-2 border-gray-300' : 'border-t border-gray-100'}`}>
+                    <td className="px-2 py-1 text-gray-600 font-medium">
+                      {idx === 0 ? `C${courtId}` : ''}
+                    </td>
+                    <td className="px-2 py-1 text-gray-500 font-mono">{formatSlotTime(a.slotId, config)}</td>
+                    <td className="px-2 py-1 font-medium text-gray-700">{getMatchLabel(a.matchId)}</td>
+                    <td className="px-2 py-1 text-gray-600 truncate max-w-xs" title={getPlayerNames(a.matchId)}>
+                      {getPlayerNames(a.matchId)}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}
@@ -199,6 +187,9 @@ export function SchedulePage() {
     reoptimizeSchedule,
     generationProgress,
   } = useSchedule();
+
+  // Table view state
+  const [tableView, setTableView] = useState<TableView>('time');
 
   // Use global loading state - persists across tab switches
   const isOptimizing = loading;
@@ -341,16 +332,20 @@ export function SchedulePage() {
               </div>
             </div>
 
-            {/* Matches list - below grid */}
+            {/* Matches table - below grid */}
             <div className="flex-1 min-h-0 bg-white rounded border border-gray-200 flex flex-col overflow-hidden">
               <div className="px-2 py-1.5 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Matches</span>
                 <span className="text-xs text-gray-400">{displayAssignments.length}/{matches.length}</span>
               </div>
-              <div className="flex-1 min-h-0 p-2 overflow-auto">
-                <MatchesList
+              <div className="flex-1 min-h-0 p-2">
+                <MatchesTable
                   assignments={displayAssignments}
                   matches={matches}
+                  players={players}
+                  config={config}
+                  view={tableView}
+                  onViewChange={setTableView}
                 />
               </div>
             </div>

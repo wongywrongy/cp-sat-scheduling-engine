@@ -25,6 +25,14 @@ interface ScheduleGenerationStats {
   assignments: ScheduleAssignment[];
 }
 
+// Solver log entry (persists across page navigation)
+export interface SolverLogEntry {
+  id: number;
+  message: string;
+  timestamp: number;
+  type: 'info' | 'solution' | 'violation' | 'stats' | 'progress';
+}
+
 interface AppState {
   // Tournament Configuration
   config: TournamentConfig | null;
@@ -65,6 +73,11 @@ interface AppState {
   setIsGenerating: (generating: boolean) => void;
   setGenerationProgress: (progress: SolverProgressEvent | null) => void;
   setGenerationError: (error: string | null) => void;
+
+  // Solver logs (persists across page navigation)
+  solverLogs: SolverLogEntry[];
+  addSolverLog: (message: string, type: SolverLogEntry['type']) => void;
+  clearSolverLogs: () => void;
 
   // Schedule lock state (prevent accidental edits after generation)
   isScheduleLocked: boolean;
@@ -109,6 +122,7 @@ export const useAppStore = create<AppState>()(
       isGenerating: false,
       generationProgress: null,
       generationError: null,
+      solverLogs: [],
       isScheduleLocked: false,
       matchStates: {},
       liveState: null,
@@ -193,6 +207,17 @@ export const useAppStore = create<AppState>()(
       setIsGenerating: (isGenerating) => set({ isGenerating }),
       setGenerationProgress: (generationProgress) => set({ generationProgress }),
       setGenerationError: (generationError) => set({ generationError }),
+
+      // Solver logs actions
+      addSolverLog: (message, type) => set((state) => {
+        const newId = state.solverLogs.length > 0
+          ? Math.max(...state.solverLogs.map(l => l.id)) + 1
+          : 1;
+        const newLog: SolverLogEntry = { id: newId, message, timestamp: Date.now(), type };
+        // Keep last 50 logs
+        return { solverLogs: [...state.solverLogs.slice(-49), newLog] };
+      }),
+      clearSolverLogs: () => set({ solverLogs: [] }),
 
       // Lock actions
       lockSchedule: () => set({ isScheduleLocked: true }),

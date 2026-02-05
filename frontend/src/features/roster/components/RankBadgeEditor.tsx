@@ -108,9 +108,9 @@ export function RankBadgeEditor({
 
   if (!schoolId) {
     return (
-      <div className={`w-full px-2 py-1.5 text-sm text-gray-400 italic ${className}`}>
+      <span className={`text-xs text-gray-400 italic ${className}`}>
         Assign school first
-      </div>
+      </span>
     );
   }
 
@@ -121,30 +121,13 @@ export function RankBadgeEditor({
           setReassignedRanks(new Map());
           setIsOpen(true);
         }}
-        className={`w-full flex items-center justify-between px-2 py-1 text-sm text-left border rounded transition-colors ${
+        className={`text-xs focus:outline-none cursor-pointer ${
           currentRanks.length > 0
-            ? 'bg-gray-50 border-gray-200 hover:border-gray-300 text-gray-800'
-            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-400'
+            ? 'text-gray-700 hover:text-gray-900'
+            : 'text-gray-400 hover:text-gray-600'
         }`}
       >
-        {currentRanks.length > 0 ? (
-          <span className="truncate">{currentRanks.sort().join(', ')}</span>
-        ) : (
-          <span>Add events</span>
-        )}
-        <svg
-          className="w-3 h-3 text-gray-400 flex-shrink-0 ml-1"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        {currentRanks.length > 0 ? currentRanks.sort().join(', ') : '+ Events'}
       </button>
 
       <Transition appear show={isOpen} as={Fragment}>

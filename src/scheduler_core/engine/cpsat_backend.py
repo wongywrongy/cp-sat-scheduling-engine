@@ -61,6 +61,7 @@ class ProgressCallback(cp_model.CpSolverSolutionCallback):
         callback_fn: Optional[Callable[[dict], None]] = None,
         x: Optional[Dict[Tuple[str, int, int], cp_model.IntVar]] = None,
         matches: Optional[Dict[str, Match]] = None,
+        model_stats: Optional[Dict[str, int]] = None,
     ):
         """
         Initialize progress callback.
@@ -70,18 +71,24 @@ class ProgressCallback(cp_model.CpSolverSolutionCallback):
                         Receives dict with keys: elapsed_ms, current_objective, best_bound
             x: Decision variables mapping (match_id, slot, court) -> IntVar
             matches: Match data for extracting assignment metadata
+            model_stats: Optional model statistics for verbose logging
         """
         super().__init__()
         self.callback_fn = callback_fn
         self.x = x or {}
         self.matches = matches or {}
+        self.model_stats = model_stats or {}
         self.start_time = time_module.perf_counter()
         self.solution_count = 0
+        self.last_objective = None
+        self.last_gap_checkpoint = 100  # Track gap milestones
+        self.time_checkpoints = {5: False, 10: False, 30: False, 60: False}  # seconds
 
     def on_solution_callback(self) -> None:
         """Called by solver when a new solution is found."""
         self.solution_count += 1
         elapsed_ms = (time_module.perf_counter() - self.start_time) * 1000
+        elapsed_sec = elapsed_ms / 1000
 
         # Extract current solution assignments
         current_assignments = []
@@ -97,13 +104,58 @@ class ProgressCallback(cp_model.CpSolverSolutionCallback):
                         'durationSlots': duration,
                     })
 
+        # Calculate optimality gap
+        current_obj = self.ObjectiveValue()
+        best_bound = self.BestObjectiveBound()
+        gap_percent = None
+        if best_bound != 0:
+            gap_percent = abs(current_obj - best_bound) / abs(best_bound) * 100
+
+        # Generate verbose messages
+        messages = []
+
+        # Time checkpoint messages
+        for checkpoint, reported in self.time_checkpoints.items():
+            if not reported and elapsed_sec >= checkpoint:
+                self.time_checkpoints[checkpoint] = True
+                if gap_percent is not None and gap_percent > 1:
+                    messages.append({
+                        'type': 'progress',
+                        'text': f'Searching... {int(elapsed_sec)}s elapsed, {gap_percent:.1f}% gap remaining'
+                    })
+
+        # Gap milestone messages (report when gap drops significantly)
+        if gap_percent is not None:
+            gap_milestones = [50, 20, 10, 5, 2, 1, 0.5, 0.1]
+            for milestone in gap_milestones:
+                if self.last_gap_checkpoint > milestone >= gap_percent:
+                    self.last_gap_checkpoint = milestone
+                    if milestone <= 5:
+                        messages.append({
+                            'type': 'progress',
+                            'text': f'Approaching optimal: {gap_percent:.1f}% gap'
+                        })
+                    break
+
+        # Large improvement message
+        if self.last_objective is not None and current_obj < self.last_objective:
+            improvement = self.last_objective - current_obj
+            if improvement > 50:
+                messages.append({
+                    'type': 'progress',
+                    'text': f'Major improvement found: -{int(improvement)} penalty points'
+                })
+        self.last_objective = current_obj
+
         if self.callback_fn:
             progress_data = {
                 'elapsed_ms': int(elapsed_ms),
-                'current_objective': self.ObjectiveValue(),
-                'best_bound': self.BestObjectiveBound(),
+                'current_objective': current_obj,
+                'best_bound': best_bound,
                 'solution_count': self.solution_count,
                 'current_assignments': current_assignments,
+                'gap_percent': gap_percent,
+                'messages': messages,
             }
             self.callback_fn(progress_data)
 
@@ -634,6 +686,43 @@ class CPSATScheduler:
         self._build_objective()
         log_build_end(len(self.matches))
 
+    def _compute_model_stats(self) -> Dict[str, int]:
+        """Compute model statistics for verbose logging."""
+        # Count player overlaps (players in multiple matches)
+        player_match_count: Dict[str, int] = defaultdict(int)
+        for match in self.matches.values():
+            for player_id in get_player_ids(match):
+                player_match_count[player_id] += 1
+
+        multi_match_players = sum(1 for count in player_match_count.values() if count > 1)
+        max_matches_per_player = max(player_match_count.values()) if player_match_count else 0
+
+        return {
+            'num_matches': len(self.matches),
+            'num_players': len(self.players),
+            'num_variables': len(self.x),
+            'total_slots': self.config.total_slots,
+            'court_count': self.config.court_count,
+            'multi_match_players': multi_match_players,
+            'max_matches_per_player': max_matches_per_player,
+            'locked_count': len(self.locked_matches),
+        }
+
+    def _estimate_difficulty(self, stats: Dict[str, int]) -> str:
+        """Estimate problem difficulty based on model stats."""
+        # Simple heuristic based on problem size
+        complexity = stats['num_matches'] * stats['multi_match_players']
+        vars_per_match = stats['num_variables'] / max(stats['num_matches'], 1)
+
+        if complexity < 50 and vars_per_match < 50:
+            return 'simple'
+        elif complexity < 200 or vars_per_match < 100:
+            return 'moderate'
+        elif complexity < 500:
+            return 'complex'
+        else:
+            return 'very complex'
+
     def solve(self, progress_callback: Optional[Callable[[dict], None]] = None) -> ScheduleResult:
         """
         Solve the model and return results.
@@ -659,6 +748,38 @@ class CPSATScheduler:
                 unscheduled_matches=list(self.matches.keys()),
             )
 
+        # Compute model statistics for verbose logging
+        model_stats = self._compute_model_stats()
+        difficulty = self._estimate_difficulty(model_stats)
+
+        # Send initial model info via callback
+        if progress_callback:
+            init_messages = [
+                {
+                    'type': 'progress',
+                    'text': f'Model: {model_stats["num_matches"]} matches, {model_stats["num_variables"]} variables'
+                },
+            ]
+            if model_stats['multi_match_players'] > 0:
+                init_messages.append({
+                    'type': 'progress',
+                    'text': f'Scheduling {model_stats["multi_match_players"]} players with multiple events'
+                })
+            if model_stats['locked_count'] > 0:
+                init_messages.append({
+                    'type': 'progress',
+                    'text': f'{model_stats["locked_count"]} matches locked/frozen'
+                })
+            init_messages.append({
+                'type': 'progress',
+                'text': f'Problem complexity: {difficulty}'
+            })
+            progress_callback({
+                'elapsed_ms': 0,
+                'solution_count': 0,
+                'messages': init_messages,
+            })
+
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = self.solver_options.time_limit_seconds
         solver.parameters.num_search_workers = self.solver_options.num_workers
@@ -670,6 +791,7 @@ class CPSATScheduler:
                 callback_fn=progress_callback,
                 x=self.x,
                 matches=self.matches,
+                model_stats=model_stats,
             )
             status = solver.Solve(self.model, callback)
         else:

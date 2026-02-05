@@ -165,17 +165,17 @@ export function PlayerListView({
   return (
     <div className="bg-white rounded border border-gray-200 overflow-visible">
       {/* Search Bar */}
-      <div className="px-3 py-2 border-b border-gray-200">
+      <div className="px-2 py-1.5 border-b border-gray-200">
         <div className="relative">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, school, or event..."
-            className="w-full px-3 py-1.5 pl-8 text-sm border border-gray-200 rounded focus:outline-none focus:border-gray-400"
+            placeholder="Search name, school, event..."
+            className="w-full px-2 py-1 pl-7 text-xs border border-gray-200 rounded focus:outline-none focus:border-gray-400"
           />
           <svg
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -185,9 +185,9 @@ export function PlayerListView({
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -197,16 +197,16 @@ export function PlayerListView({
 
       {/* No results state */}
       {filteredPlayers.length === 0 && players.length > 0 && (
-        <div className="px-3 py-6 text-center text-sm text-gray-500">
+        <div className="px-2 py-4 text-center text-xs text-gray-500">
           No players match "{searchQuery}"
         </div>
       )}
 
       {filteredPlayers.length > 0 && (
-      <table className="min-w-full">
-        <thead className="bg-gray-50 border-b border-gray-200">
+      <table className="w-full text-xs">
+        <thead className="sticky top-0 bg-gray-100">
           <tr>
-            <th className="px-3 py-2.5 w-10">
+            <th className="px-2 py-1 w-8">
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -216,14 +216,14 @@ export function PlayerListView({
                   }
                 }}
                 onChange={handleSelectAll}
-                className="w-4 h-4 text-gray-800 border-gray-300 rounded focus:ring-gray-500"
+                className="w-3.5 h-3.5 text-gray-800 border-gray-300 rounded focus:ring-gray-500"
                 aria-label="Select all players"
               />
             </th>
-            <th className="px-3 py-2.5 text-left">
+            <th className="px-2 py-1 text-left">
               <button
                 onClick={() => handleSort('name')}
-                className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center gap-1 hover:text-gray-700"
+                className="font-medium text-gray-600 flex items-center gap-0.5 hover:text-gray-800"
               >
                 Name
                 {sortField === 'name' && (
@@ -231,10 +231,10 @@ export function PlayerListView({
                 )}
               </button>
             </th>
-            <th className="px-3 py-2.5 text-left">
+            <th className="px-2 py-1 text-left">
               <button
                 onClick={() => handleSort('school')}
-                className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center gap-1 hover:text-gray-700"
+                className="font-medium text-gray-600 flex items-center gap-0.5 hover:text-gray-800"
               >
                 School
                 {sortField === 'school' && (
@@ -242,40 +242,40 @@ export function PlayerListView({
                 )}
               </button>
             </th>
-            <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+            <th className="px-2 py-1 text-left font-medium text-gray-600">
               Events
             </th>
-            <th className="px-3 py-2.5 text-right">
-              <div className="flex items-center justify-end gap-2">
+            <th className="px-2 py-1 text-right">
+              <div className="flex items-center justify-end gap-1">
                 {onImportCSV && (
                   <button
                     onClick={onImportCSV}
-                    className="px-2 py-1 text-gray-600 hover:text-gray-800 text-xs"
+                    className="px-1.5 py-0.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
                   >
-                    Import CSV
+                    Import
                   </button>
                 )}
                 {onAddSchool && (
                   <button
                     onClick={onAddSchool}
-                    className="px-2 py-1 text-gray-600 hover:text-gray-800 text-xs"
+                    className="px-1.5 py-0.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
                   >
-                    Add School
+                    + School
                   </button>
                 )}
                 {onAddPlayer && (
                   <button
                     onClick={onAddPlayer}
-                    className="px-2 py-1 text-gray-600 hover:text-gray-800 text-xs"
+                    className="px-1.5 py-0.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
                   >
-                    Add Player
+                    + Player
                   </button>
                 )}
               </div>
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody>
           {filteredPlayers.map((player) => (
             <PlayerListItem
               key={player.id}
@@ -296,7 +296,7 @@ export function PlayerListView({
 
       {/* Selection info - shown below table when players are selected */}
       {selection.hasSelection && (
-        <div className="px-3 py-2 bg-gray-50 border-t border-gray-200 text-sm text-gray-600 flex items-center justify-between">
+        <div className="px-2 py-1 bg-gray-50 border-t border-gray-200 text-xs text-gray-600 flex items-center justify-between">
           <span>{selection.selectedCount} selected{searchQuery && ` (${filteredPlayers.length} shown)`}</span>
           <button
             onClick={() => selection.clearSelection()}

@@ -1,16 +1,11 @@
 /**
  * Solver progress log showing real-time optimization updates
  * Shows solver messages and violation warnings
+ * Uses global store for persistence across page navigation
  */
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { useAppStore, type SolverLogEntry } from '../../../store/appStore';
 import type { ConstraintViolation } from '../../../api/dto';
-
-interface LogEntry {
-  id: number;
-  message: string;
-  timestamp: number;
-  type: 'info' | 'solution' | 'violation' | 'stats';
-}
 
 interface SolverProgressLogProps {
   solutionCount?: number;
@@ -29,57 +24,53 @@ export function SolverProgressLog({
   status,
   violations,
 }: SolverProgressLogProps) {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const logs = useAppStore((state) => state.solverLogs);
+  const addSolverLog = useAppStore((state) => state.addSolverLog);
+  const clearSolverLogs = useAppStore((state) => state.clearSolverLogs);
+
   const logRef = useRef<HTMLDivElement>(null);
   const prevSolutionCount = useRef(solutionCount);
   const prevObjectiveScore = useRef(objectiveScore);
   const prevStatus = useRef(status);
   const prevViolationCount = useRef(0);
-  const idCounter = useRef(0);
   const completionStatsAdded = useRef(false);
-
-  // Add log entry helper
-  const addLog = (message: string, type: LogEntry['type'] = 'info') => {
-    idCounter.current++;
-    setLogs(prev => [...prev.slice(-29), { id: idCounter.current, message, timestamp: Date.now(), type }]);
-  };
 
   // Track status changes
   useEffect(() => {
     if (status !== prevStatus.current) {
       if (status === 'solving') {
-        setLogs([]); // Clear on new solve
+        clearSolverLogs(); // Clear on new solve
         completionStatsAdded.current = false;
         prevViolationCount.current = 0;
-        addLog('Starting optimization...');
+        addSolverLog('Starting optimization...', 'info');
       } else if (status === 'error') {
-        addLog('Error during optimization');
+        addSolverLog('Error during optimization', 'info');
       }
       prevStatus.current = status;
     }
-  }, [status]);
+  }, [status, addSolverLog, clearSolverLogs]);
 
   // Track solution improvements
   useEffect(() => {
     if (solutionCount !== undefined && solutionCount !== prevSolutionCount.current) {
       if (prevSolutionCount.current !== undefined && solutionCount > prevSolutionCount.current) {
         const scoreStr = objectiveScore !== undefined ? ` (score: ${Math.round(objectiveScore)})` : '';
-        addLog(`Found solution #${solutionCount}${scoreStr}`, 'solution');
+        addSolverLog(`Found solution #${solutionCount}${scoreStr}`, 'solution');
       }
       prevSolutionCount.current = solutionCount;
     }
-  }, [solutionCount, objectiveScore]);
+  }, [solutionCount, objectiveScore, addSolverLog]);
 
   // Track significant score improvements
   useEffect(() => {
     if (objectiveScore !== undefined && prevObjectiveScore.current !== undefined) {
       const improvement = prevObjectiveScore.current - objectiveScore;
       if (improvement > 10) {
-        addLog(`Score improved by ${Math.round(improvement)} points`, 'solution');
+        addSolverLog(`Score improved by ${Math.round(improvement)} points`, 'solution');
       }
     }
     prevObjectiveScore.current = objectiveScore;
-  }, [objectiveScore]);
+  }, [objectiveScore, addSolverLog]);
 
   // Track new violations
   useEffect(() => {
@@ -88,11 +79,11 @@ export function SolverProgressLog({
       const newViolations = violations.slice(prevViolationCount.current);
       for (const v of newViolations) {
         const severityLabel = v.severity === 'hard' ? 'HARD' : 'Soft';
-        addLog(`${severityLabel} violation: ${v.description}`, 'violation');
+        addSolverLog(`${severityLabel} violation: ${v.description}`, 'violation');
       }
       prevViolationCount.current = violations.length;
     }
-  }, [violations]);
+  }, [violations, addSolverLog]);
 
   // Add final stats when complete
   useEffect(() => {
@@ -103,7 +94,7 @@ export function SolverProgressLog({
       const softViolations = violations.filter(v => v.severity === 'soft').length;
 
       // Add completion message
-      addLog(`Complete - ${matchCount}/${totalMatches} matches scheduled`);
+      addSolverLog(`Complete - ${matchCount}/${totalMatches} matches scheduled`, 'info');
 
       // Add stats summary
       const parts: string[] = [];
@@ -118,12 +109,12 @@ export function SolverProgressLog({
       }
 
       if (parts.length > 0) {
-        addLog(`Stats: ${parts.join(', ')}`, 'stats');
+        addSolverLog(`Stats: ${parts.join(', ')}`, 'stats');
       } else {
-        addLog('Stats: No violations detected', 'stats');
+        addSolverLog('Stats: No violations detected', 'stats');
       }
     }
-  }, [status, violations, matchCount, totalMatches, objectiveScore]);
+  }, [status, violations, matchCount, totalMatches, objectiveScore, addSolverLog]);
 
   // Auto-scroll
   useEffect(() => {
@@ -133,7 +124,7 @@ export function SolverProgressLog({
   }, [logs]);
 
   // Get color for log entry type
-  const getEntryColor = (type: LogEntry['type']) => {
+  const getEntryColor = (type: SolverLogEntry['type']) => {
     switch (type) {
       case 'solution':
         return 'text-green-600';
@@ -167,7 +158,7 @@ export function SolverProgressLog({
                     second: '2-digit'
                   })}
                 </span>
-                <span className={`${getEntryColor(entry.type)} truncate`}>{entry.message}</span>
+                <span className={getEntryColor(entry.type)}>{entry.message}</span>
               </div>
             ))
           )}

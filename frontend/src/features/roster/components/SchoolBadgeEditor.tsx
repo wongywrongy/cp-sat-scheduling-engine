@@ -32,33 +32,11 @@ export function SchoolBadgeEditor({
   const schoolColor = currentSchool?.metadata?.color;
 
   return (
-    <Menu as="div" className={`relative w-full ${className}`}>
+    <Menu as="div" className={`relative inline-block ${className}`}>
       <Menu.Button
-        className="w-full flex items-center justify-between px-2 py-1 text-sm text-left border rounded transition-colors hover:border-gray-300"
-        style={schoolColor ? {
-          backgroundColor: `${schoolColor}15`,
-          borderColor: `${schoolColor}40`,
-        } : {
-          backgroundColor: 'white',
-          borderColor: '#e5e7eb',
-        }}
+        className="text-xs text-gray-700 hover:text-gray-900 focus:outline-none cursor-pointer"
       >
-        <span className={`truncate ${currentSchool ? 'text-gray-800' : 'text-gray-400'}`}>
-          {displayText}
-        </span>
-        <svg
-          className="w-3 h-3 text-gray-400 flex-shrink-0 ml-1"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        {displayText}
       </Menu.Button>
 
       <Transition
@@ -70,15 +48,16 @@ export function SchoolBadgeEditor({
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items className="absolute left-0 z-10 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-          <div className="py-1">
+        <Menu.Items className="absolute left-0 z-10 mt-1 w-40 origin-top-left rounded bg-white shadow-sm ring-1 ring-black ring-opacity-5 focus:outline-none">
+          <div className="py-0.5">
             {schools.length === 0 ? (
-              <div className="px-4 py-2 text-sm text-gray-500">
+              <div className="px-3 py-1.5 text-xs text-gray-500">
                 No schools available
               </div>
             ) : (
               schools.map((school) => {
                 const isSelected = school.id === currentSchoolId;
+                const color = school.metadata?.color;
                 return (
                   <Menu.Item key={school.id}>
                     {({ active }) => (
@@ -86,12 +65,20 @@ export function SchoolBadgeEditor({
                         onClick={() => onSchoolChange(school.id)}
                         className={`${
                           active ? 'bg-gray-100' : ''
-                        } group flex w-full items-center justify-between px-4 py-2 text-sm text-gray-900`}
+                        } group flex w-full items-center justify-between px-3 py-1.5 text-xs text-gray-700`}
                       >
-                        <span>{school.name}</span>
+                        <span className="flex items-center gap-1.5">
+                          {color && (
+                            <span
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                          )}
+                          {school.name}
+                        </span>
                         {isSelected && (
                           <svg
-                            className="h-4 w-4 text-gray-600"
+                            className="h-3 w-3 text-gray-500"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"

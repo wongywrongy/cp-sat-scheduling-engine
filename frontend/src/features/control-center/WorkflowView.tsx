@@ -30,6 +30,14 @@ export function WorkflowView({
 }: WorkflowViewProps) {
   const upNextCount = matchesByStatus.called.length + matchesByStatus.scheduled.length;
 
+  // Sort assignments by time (slotId)
+  const sortByTime = (a: ScheduleAssignment, b: ScheduleAssignment) => a.slotId - b.slotId;
+
+  const startedSorted = [...matchesByStatus.started].sort(sortByTime);
+  const calledSorted = [...matchesByStatus.called].sort(sortByTime);
+  const scheduledSorted = [...matchesByStatus.scheduled].sort(sortByTime);
+  const finishedSorted = [...matchesByStatus.finished].sort(sortByTime).reverse(); // Most recent first
+
   // Check if assignment is in current slot (or within 1 slot)
   const isCurrentSlot = (assignment: ScheduleAssignment) => {
     const matchEnd = assignment.slotId + assignment.durationSlots;
@@ -46,12 +54,12 @@ export function WorkflowView({
           <span className="text-xs text-gray-400">({matchesByStatus.started.length})</span>
         </div>
         <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-          {matchesByStatus.started.length === 0 ? (
+          {startedSorted.length === 0 ? (
             <div className="bg-gray-50 rounded p-2 text-center text-gray-400 text-xs">
               None
             </div>
           ) : (
-            matchesByStatus.started.map((assignment) => (
+            startedSorted.map((assignment) => (
               <MatchStatusCard
                 key={assignment.matchId}
                 assignment={assignment}
@@ -75,7 +83,7 @@ export function WorkflowView({
         </div>
         <div className="flex-1 overflow-y-auto space-y-1 pr-1">
           {/* Called matches first - never dimmed */}
-          {matchesByStatus.called.map((assignment) => (
+          {calledSorted.map((assignment) => (
             <MatchStatusCard
               key={assignment.matchId}
               assignment={assignment}
@@ -88,7 +96,7 @@ export function WorkflowView({
           ))}
 
           {/* All scheduled matches - dim if not current slot */}
-          {matchesByStatus.scheduled.map((assignment) => (
+          {scheduledSorted.map((assignment) => (
             <MatchStatusCard
               key={assignment.matchId}
               assignment={assignment}
@@ -100,7 +108,7 @@ export function WorkflowView({
             />
           ))}
 
-          {matchesByStatus.called.length === 0 && matchesByStatus.scheduled.length === 0 && (
+          {calledSorted.length === 0 && scheduledSorted.length === 0 && (
             <div className="bg-gray-50 rounded p-2 text-center text-gray-400 text-xs">
               None
             </div>
@@ -116,25 +124,22 @@ export function WorkflowView({
           <span className="text-xs text-gray-400">({matchesByStatus.finished.length})</span>
         </div>
         <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-          {matchesByStatus.finished.length === 0 ? (
+          {finishedSorted.length === 0 ? (
             <div className="bg-gray-50 rounded p-2 text-center text-gray-400 text-xs">
               None
             </div>
           ) : (
-            matchesByStatus.finished
-              .slice()
-              .reverse()
-              .map((assignment) => (
-                <MatchStatusCard
-                  key={assignment.matchId}
-                  assignment={assignment}
-                  match={matches.find((m) => m.id === assignment.matchId)}
-                  matchState={matchStates[assignment.matchId]}
-                  config={config}
-                  onUpdateStatus={onUpdateStatus}
-                  dimmed={false}
-                />
-              ))
+            finishedSorted.map((assignment) => (
+              <MatchStatusCard
+                key={assignment.matchId}
+                assignment={assignment}
+                match={matches.find((m) => m.id === assignment.matchId)}
+                matchState={matchStates[assignment.matchId]}
+                config={config}
+                onUpdateStatus={onUpdateStatus}
+                dimmed={false}
+              />
+            ))
           )}
         </div>
       </div>

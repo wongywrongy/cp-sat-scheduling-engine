@@ -21,6 +21,12 @@ export interface TournamentConfig {
   minGameSpacingSlots?: number | null;
   maxGameSpacingSlots?: number | null;
   gameProximityPenalty?: number;
+  // Compact schedule - minimize makespan
+  enableCompactSchedule?: boolean;
+  compactSchedulePenalty?: number;
+  // Allow player overlap
+  allowPlayerOverlap?: boolean;
+  playerOverlapPenalty?: number;
 }
 
 export interface BreakWindow {
@@ -45,6 +51,12 @@ export interface TournamentConfigDTO {
   minGameSpacingSlots?: number | null;
   maxGameSpacingSlots?: number | null;
   gameProximityPenalty?: number;
+  // Compact schedule - minimize makespan
+  enableCompactSchedule?: boolean;
+  compactSchedulePenalty?: number;
+  // Allow player overlap
+  allowPlayerOverlap?: boolean;
+  playerOverlapPenalty?: number;
 }
 
 // Schedule Views

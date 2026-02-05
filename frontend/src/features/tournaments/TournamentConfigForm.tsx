@@ -23,7 +23,11 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
     enableGameProximity: config.enableGameProximity ?? false,
     minGameSpacingSlots: config.minGameSpacingSlots ?? null,
     maxGameSpacingSlots: config.maxGameSpacingSlots ?? null,
-    gameProximityPenalty: config.gameProximityPenalty ?? 5.0
+    gameProximityPenalty: config.gameProximityPenalty ?? 5.0,
+    enableCompactSchedule: config.enableCompactSchedule ?? false,
+    compactSchedulePenalty: config.compactSchedulePenalty ?? 100.0,
+    allowPlayerOverlap: config.allowPlayerOverlap ?? false,
+    playerOverlapPenalty: config.playerOverlapPenalty ?? 50.0
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [breakWindows, setBreakWindows] = useState<BreakWindow[]>(config.breaks || []);
@@ -359,12 +363,12 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                       Maximize Court Utilization
                     </Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Keep all courts active to finish earlier
+                      Penalize idle courts. Higher = fewer empty courts, tighter schedule
                     </p>
 
                     {formData.enableCourtUtilization && (
                       <div className="mt-2 flex items-center gap-2">
-                        <Label className="text-xs">Weight:</Label>
+                        <span className="text-[10px] text-muted-foreground">0=off</span>
                         <input
                           type="range"
                           value={formData.courtUtilizationPenalty ?? 50}
@@ -394,14 +398,14 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                       Game Spacing Constraint
                     </Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Control time between a player's matches
+                      Control time between a player's matches. Higher penalty = stricter enforcement
                     </p>
 
                     {formData.enableGameProximity && (
                       <div className="mt-2 space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <Label className="text-xs">Min slots</Label>
+                            <Label className="text-xs">Min slots between games</Label>
                             <Input
                               type="number"
                               value={formData.minGameSpacingSlots ?? ''}
@@ -415,7 +419,7 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                             />
                           </div>
                           <div>
-                            <Label className="text-xs">Max slots</Label>
+                            <Label className="text-xs">Max slots between games</Label>
                             <Input
                               type="number"
                               value={formData.maxGameSpacingSlots ?? ''}
@@ -430,7 +434,7 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Label className="text-xs">Penalty:</Label>
+                          <span className="text-[10px] text-muted-foreground">0=off</span>
                           <input
                             type="range"
                             value={formData.gameProximityPenalty ?? 5}
@@ -442,6 +446,76 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                           />
                           <span className="text-xs font-medium w-6">{formData.gameProximityPenalty ?? 5}</span>
                         </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Compact Schedule */}
+                <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-md">
+                  <input
+                    type="checkbox"
+                    id="enableCompactSchedule"
+                    checked={formData.enableCompactSchedule ?? false}
+                    onChange={(e) => setFormData({ ...formData, enableCompactSchedule: e.target.checked })}
+                    className="mt-0.5 h-4 w-4 rounded border-input"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="enableCompactSchedule" className="cursor-pointer">
+                      Compact Schedule
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Minimize total schedule length. Higher = fewer gaps, earlier finish
+                    </p>
+
+                    {formData.enableCompactSchedule && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">0=off</span>
+                        <input
+                          type="range"
+                          value={formData.compactSchedulePenalty ?? 100}
+                          onChange={(e) => setFormData({ ...formData, compactSchedulePenalty: parseFloat(e.target.value) })}
+                          className="flex-1 h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
+                          min="0"
+                          max="200"
+                          step="10"
+                        />
+                        <span className="text-xs font-medium w-8">{formData.compactSchedulePenalty ?? 100}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Allow Player Overlap */}
+                <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-md">
+                  <input
+                    type="checkbox"
+                    id="allowPlayerOverlap"
+                    checked={formData.allowPlayerOverlap ?? false}
+                    onChange={(e) => setFormData({ ...formData, allowPlayerOverlap: e.target.checked })}
+                    className="mt-0.5 h-4 w-4 rounded border-input"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="allowPlayerOverlap" className="cursor-pointer">
+                      Allow Player Overlap
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Permit same player in multiple matches at once (soft constraint). Higher penalty = stronger avoidance
+                    </p>
+
+                    {formData.allowPlayerOverlap && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">0=allow freely</span>
+                        <input
+                          type="range"
+                          value={formData.playerOverlapPenalty ?? 50}
+                          onChange={(e) => setFormData({ ...formData, playerOverlapPenalty: parseFloat(e.target.value) })}
+                          className="flex-1 h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
+                          min="0"
+                          max="100"
+                          step="10"
+                        />
+                        <span className="text-xs font-medium w-8">{formData.playerOverlapPenalty ?? 50}</span>
                       </div>
                     )}
                   </div>

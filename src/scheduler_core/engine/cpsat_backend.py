@@ -144,6 +144,7 @@ class CPSATScheduler:
         self.rest_slack: Dict[Tuple[str, str, str], cp_model.IntVar] = {}
         self.proximity_min_slack: Dict[Tuple[str, str, str], cp_model.IntVar] = {}
         self.proximity_max_slack: Dict[Tuple[str, str, str], cp_model.IntVar] = {}
+        self.overlap_violations: List[cp_model.IntVar] = []
 
         # Tracking
         self.infeasible_reasons: List[str] = []
@@ -218,31 +219,46 @@ class CPSATScheduler:
                     self.model.Add(sum(overlapping_vars) <= 1)
     
     def _add_player_nonoverlap_constraint(self) -> None:
-        """Player non-overlap: each player in at most one match per slot."""
+        """Player non-overlap: each player in at most one match per slot.
+
+        If allow_player_overlap is True, this becomes a soft constraint with penalty.
+        """
         T = self.config.total_slots
         C = self.config.court_count
-        
+        allow_overlap = self.config.allow_player_overlap
+
         player_matches: Dict[str, List[Match]] = defaultdict(list)
         for match in self.matches.values():
             for player_id in get_player_ids(match):
                 player_matches[player_id].append(match)
-        
+
         for player_id, matches in player_matches.items():
             if len(matches) <= 1:
                 continue
-            
+
             for s in range(T):
                 overlapping_vars = []
-                
+
                 for match in matches:
                     d = match.duration_slots
                     for t in range(max(0, s - d + 1), s + 1):
                         for c in range(1, C + 1):
                             if (match.id, t, c) in self.x:
                                 overlapping_vars.append(self.x[(match.id, t, c)])
-                
+
                 if len(overlapping_vars) > 1:
-                    self.model.Add(sum(overlapping_vars) <= 1)
+                    if allow_overlap:
+                        # Soft constraint: allow overlap but track violations
+                        # violation = max(0, sum(overlapping_vars) - 1)
+                        violation = self.model.NewIntVar(
+                            0, len(overlapping_vars) - 1,
+                            f"overlap_{player_id}_{s}"
+                        )
+                        self.model.Add(violation >= sum(overlapping_vars) - 1)
+                        self.overlap_violations.append(violation)
+                    else:
+                        # Hard constraint: no overlap allowed
+                        self.model.Add(sum(overlapping_vars) <= 1)
     
     def _add_availability_constraint(self) -> None:
         """Availability: respect player availability windows."""
@@ -546,6 +562,27 @@ class CPSATScheduler:
                 if match_id in self.locked_matches:
                     continue
                 objective_terms.append(int(self.config.late_finish_penalty * 10) * self.start_slot[match_id])
+
+        # Compact schedule - minimize makespan (latest finish time)
+        if self.config.enable_compact_schedule and self.config.compact_schedule_penalty > 0:
+            # Create makespan variable (maximum end slot across all matches)
+            max_possible_end = self.config.total_slots
+            makespan = self.model.NewIntVar(0, max_possible_end, "makespan")
+
+            # Makespan >= end_slot for all matches
+            for match_id, match in self.matches.items():
+                if match_id in self.locked_matches:
+                    continue
+                # end_slot = start_slot + duration - 1
+                self.model.Add(makespan >= self.end_slot[match_id])
+
+            # Penalize the makespan heavily to minimize it
+            objective_terms.append(int(self.config.compact_schedule_penalty * 10) * makespan)
+
+        # Player overlap penalty (when soft overlap is enabled)
+        if self.config.allow_player_overlap and self.config.player_overlap_penalty > 0:
+            for violation in self.overlap_violations:
+                objective_terms.append(int(self.config.player_overlap_penalty * 10) * violation)
 
         if objective_terms:
             self.model.Minimize(sum(objective_terms))

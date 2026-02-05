@@ -74,6 +74,14 @@ class ScheduleConfig:
     max_game_spacing_slots: Optional[int] = None
     game_proximity_penalty: float = 5.0
 
+    # Compact schedule - minimize makespan (latest finish time)
+    enable_compact_schedule: bool = False
+    compact_schedule_penalty: float = 100.0
+
+    # Allow player overlap - makes player non-overlap a soft constraint
+    allow_player_overlap: bool = False
+    player_overlap_penalty: float = 50.0
+
 
 @dataclass
 class SolverOptions:

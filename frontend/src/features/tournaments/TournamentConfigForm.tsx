@@ -29,7 +29,12 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
     compactSchedulePenalty: config.compactSchedulePenalty ?? 100.0,
     targetFinishSlot: config.targetFinishSlot ?? null,
     allowPlayerOverlap: config.allowPlayerOverlap ?? false,
-    playerOverlapPenalty: config.playerOverlapPenalty ?? 50.0
+    playerOverlapPenalty: config.playerOverlapPenalty ?? 50.0,
+    // Scoring format
+    scoringFormat: config.scoringFormat ?? 'simple',
+    setsToWin: config.setsToWin ?? 2,
+    pointsPerSet: config.pointsPerSet ?? 21,
+    deuceEnabled: config.deuceEnabled ?? true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [breakWindows, setBreakWindows] = useState<BreakWindow[]>(config.breaks || []);
@@ -244,6 +249,96 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                 />
                 <p className="text-[10px] text-muted-foreground">Slots protected from live rescheduling</p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* SCORING FORMAT */}
+        <Card>
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-sm">Scoring Format</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            <div className="space-y-3">
+              {/* Format selector */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, scoringFormat: 'simple' })}
+                  className={`flex-1 px-3 py-2 text-sm rounded border ${
+                    formData.scoringFormat === 'simple'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background text-foreground border-input hover:bg-accent'
+                  }`}
+                >
+                  Simple Score
+                  <p className="text-[10px] opacity-70 mt-0.5">Just final score (e.g., 2-1)</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, scoringFormat: 'badminton' })}
+                  className={`flex-1 px-3 py-2 text-sm rounded border ${
+                    formData.scoringFormat === 'badminton'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background text-foreground border-input hover:bg-accent'
+                  }`}
+                >
+                  Badminton Sets
+                  <p className="text-[10px] opacity-70 mt-0.5">Set-by-set points (e.g., 21-19, 21-15)</p>
+                </button>
+              </div>
+
+              {/* Badminton-specific settings */}
+              {formData.scoringFormat === 'badminton' && (
+                <div className="bg-muted/50 rounded-md p-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Match Format</Label>
+                      <select
+                        value={formData.setsToWin ?? 2}
+                        onChange={(e) => setFormData({ ...formData, setsToWin: parseInt(e.target.value) })}
+                        className="w-full h-9 px-2 rounded border border-input bg-background text-sm"
+                      >
+                        <option value={1}>Best of 1 (1 set)</option>
+                        <option value={2}>Best of 3 (2 sets to win)</option>
+                        <option value={3}>Best of 5 (3 sets to win)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Points per Set</Label>
+                      <select
+                        value={formData.pointsPerSet ?? 21}
+                        onChange={(e) => setFormData({ ...formData, pointsPerSet: parseInt(e.target.value) })}
+                        className="w-full h-9 px-2 rounded border border-input bg-background text-sm"
+                      >
+                        <option value={11}>11 points (short)</option>
+                        <option value={15}>15 points (medium)</option>
+                        <option value={21}>21 points (standard)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="deuceEnabled"
+                      checked={formData.deuceEnabled ?? true}
+                      onChange={(e) => setFormData({ ...formData, deuceEnabled: e.target.checked })}
+                      className="h-4 w-4 rounded border-input"
+                    />
+                    <div>
+                      <Label htmlFor="deuceEnabled" className="cursor-pointer">
+                        Deuce (win by 2)
+                      </Label>
+                      <p className="text-[10px] text-muted-foreground">
+                        {formData.pointsPerSet === 21
+                          ? 'After 20-20, first to 2-point lead wins (max 30 points)'
+                          : `After ${(formData.pointsPerSet ?? 21) - 1}-${(formData.pointsPerSet ?? 21) - 1}, first to 2-point lead wins`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

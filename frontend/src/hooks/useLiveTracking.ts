@@ -1,11 +1,40 @@
 /**
  * Hook for live tracking page logic
  * Manages match state fetching, updating, and grouping for the live tracking interface
+ *
+ * Match State Machine:
+ *   scheduled → called → started → finished
+ *       ↓         ↓         ↓          ↓
+ *    (delay)   (undo)    (undo)     (undo)
+ *       ↓         ↓         ↓          ↓
+ *   scheduled  scheduled  called    started
  */
 import { useEffect, useCallback } from 'react';
 import { useAppStore } from '../store/appStore';
 import { apiClient } from '../api/client';
 import type { MatchStateDTO } from '../api/dto';
+
+/**
+ * Valid state transitions for match state machine
+ * Key = current status, Value = array of valid next statuses
+ */
+const VALID_TRANSITIONS: Record<MatchStateDTO['status'], MatchStateDTO['status'][]> = {
+  scheduled: ['called', 'scheduled'], // can call or delay (stays scheduled)
+  called: ['started', 'scheduled'],    // can start or undo to scheduled
+  started: ['finished', 'called'],     // can finish or undo to called
+  finished: ['started'],               // can only undo to started
+};
+
+/**
+ * Validate if a state transition is allowed
+ */
+function isValidTransition(
+  currentStatus: MatchStateDTO['status'],
+  newStatus: MatchStateDTO['status']
+): boolean {
+  const validNextStates = VALID_TRANSITIONS[currentStatus];
+  return validNextStates.includes(newStatus);
+}
 
 export function useLiveTracking() {
   const schedule = useAppStore((state) => state.schedule);
@@ -72,6 +101,14 @@ export function useLiveTracking() {
   ) => {
     try {
       const currentState = matchStates[matchId] || { matchId, status: 'scheduled' };
+      const currentStatus = currentState.status || 'scheduled';
+
+      // Validate state transition
+      if (!isValidTransition(currentStatus, status)) {
+        console.warn(`Invalid state transition: ${currentStatus} → ${status} for match ${matchId}`);
+        throw new Error(`Invalid state transition: cannot go from '${currentStatus}' to '${status}'`);
+      }
+
       const now = new Date().toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',

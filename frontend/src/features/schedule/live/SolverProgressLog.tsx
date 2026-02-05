@@ -85,9 +85,12 @@ export function SolverProgressLog({
     }
   }, [violations, addSolverLog]);
 
-  // Add final stats when complete
+  // Add final stats when complete (only if not already added)
   useEffect(() => {
-    if (status === 'complete' && !completionStatsAdded.current) {
+    // Check if completion stats already exist in logs (prevents duplicates on page revisit)
+    const hasCompletionStats = logs.some(log => log.type === 'stats' && log.message.startsWith('Stats:'));
+
+    if (status === 'complete' && !completionStatsAdded.current && !hasCompletionStats) {
       completionStatsAdded.current = true;
 
       const hardViolations = violations.filter(v => v.severity === 'hard').length;
@@ -114,7 +117,7 @@ export function SolverProgressLog({
         addSolverLog('Stats: No violations detected', 'stats');
       }
     }
-  }, [status, violations, matchCount, totalMatches, objectiveScore, addSolverLog]);
+  }, [status, violations, matchCount, totalMatches, objectiveScore, addSolverLog, logs]);
 
   // Auto-scroll
   useEffect(() => {
@@ -132,6 +135,8 @@ export function SolverProgressLog({
         return 'text-amber-600';
       case 'stats':
         return 'text-blue-600 font-medium';
+      case 'progress':
+        return 'text-gray-500 italic';
       default:
         return 'text-gray-600';
     }

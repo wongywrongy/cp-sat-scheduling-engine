@@ -29,6 +29,11 @@ export interface TournamentConfig {
   // Allow player overlap
   allowPlayerOverlap?: boolean;
   playerOverlapPenalty?: number;
+  // Scoring format for badminton
+  scoringFormat?: 'simple' | 'badminton';
+  setsToWin?: number; // 1 (best of 1), 2 (best of 3), or 3 (best of 5)
+  pointsPerSet?: number; // 11, 15, or 21
+  deuceEnabled?: boolean; // Win by 2 in deuce (up to 30 for 21-point sets)
 }
 
 export interface BreakWindow {
@@ -61,6 +66,11 @@ export interface TournamentConfigDTO {
   // Allow player overlap
   allowPlayerOverlap?: boolean;
   playerOverlapPenalty?: number;
+  // Scoring format for badminton
+  scoringFormat?: 'simple' | 'badminton';
+  setsToWin?: number;
+  pointsPerSet?: number;
+  deuceEnabled?: boolean;
 }
 
 // Schedule Views
@@ -91,16 +101,29 @@ export interface SoftViolation {
   penaltyIncurred: number;
 }
 
+// Set score for badminton matches
+export interface SetScore {
+  sideA: number;
+  sideB: number;
+}
+
+// Delay reason options
+export type DelayReason = 'player_not_present' | 'injury' | 'court_issue' | 'other';
+
 // Match State (for Match Desk operations)
 export interface MatchStateDTO {
   matchId: string;
   status: 'scheduled' | 'called' | 'started' | 'finished';
   actualStartTime?: string;
   actualEndTime?: string;
+  delayed?: boolean; // Explicitly marked as delayed
+  delayReason?: DelayReason; // Reason for delay
+  pinned?: boolean; // Pinned to court/time (for finals/special matches)
   score?: {
     sideA: number;
     sideB: number;
   };
+  sets?: SetScore[]; // For badminton set-by-set scoring
   notes?: string;
   updatedAt?: string;
 }
@@ -171,6 +194,12 @@ export interface TournamentExportV2 {
   matchStates?: Record<string, MatchStateDTO>;
 }
 
+// Verbose message from solver
+export interface SolverProgressMessage {
+  type: 'progress';
+  text: string;
+}
+
 // Solver Progress (for real-time optimization visualization)
 export interface SolverProgressEvent {
   elapsed_ms: number;
@@ -178,6 +207,8 @@ export interface SolverProgressEvent {
   best_bound?: number;
   solution_count?: number;
   current_assignments?: ScheduleAssignment[];
+  gap_percent?: number;
+  messages?: SolverProgressMessage[];
 }
 
 // Constraint Visualization Types

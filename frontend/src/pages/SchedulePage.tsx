@@ -9,7 +9,7 @@ import { SolverProgressLog } from '../features/schedule/live/SolverProgressLog';
 import { LiveMetricsBar } from '../features/schedule/live/LiveMetricsBar';
 import { computeConstraintViolations } from '../utils/constraintChecker';
 import { formatSlotTime } from '../utils/timeUtils';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ScheduleAssignment, MatchDTO, PlayerDTO, TournamentConfig } from '../api/dto';
 
 type TableView = 'time' | 'court';
@@ -179,6 +179,7 @@ export function SchedulePage() {
   const players = useAppStore((state) => state.players);
   const matches = useAppStore((state) => state.matches);
   const scheduleStats = useAppStore((state) => state.scheduleStats);
+  const addSolverLog = useAppStore((state) => state.addSolverLog);
   const {
     schedule,
     loading,
@@ -187,6 +188,30 @@ export function SchedulePage() {
     reoptimizeSchedule,
     generationProgress,
   } = useSchedule();
+
+  // Track processed message timestamps to avoid duplicates
+  const processedMessages = useRef(new Set<string>());
+
+  // Process verbose messages from solver progress
+  useEffect(() => {
+    if (generationProgress?.messages) {
+      for (const msg of generationProgress.messages) {
+        // Create unique key for this message
+        const key = `${generationProgress.elapsed_ms}-${msg.text}`;
+        if (!processedMessages.current.has(key)) {
+          processedMessages.current.add(key);
+          addSolverLog(msg.text, 'progress');
+        }
+      }
+    }
+  }, [generationProgress, addSolverLog]);
+
+  // Clear processed messages when a new generation starts
+  useEffect(() => {
+    if (loading) {
+      processedMessages.current.clear();
+    }
+  }, [loading]);
 
   // Table view state
   const [tableView, setTableView] = useState<TableView>('time');
@@ -235,9 +260,10 @@ export function SchedulePage() {
   const hasLiveProgress = isOptimizing && generationProgress?.current_assignments && generationProgress.current_assignments.length > 0;
 
   // Raw assignments from backend (live progress or stored)
+  // Priority: live progress > final schedule > stats snapshot
   const rawAssignments = hasLiveProgress
     ? generationProgress.current_assignments
-    : (scheduleStats?.assignments || schedule?.assignments || []);
+    : (schedule?.assignments || scheduleStats?.assignments || []);
 
   // Smooth assignments for consistent animation during generation
   const displayAssignments = useSmoothedAssignments(rawAssignments, isOptimizing, {

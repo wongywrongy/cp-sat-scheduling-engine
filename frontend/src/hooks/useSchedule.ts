@@ -63,17 +63,16 @@ export function useSchedule() {
 
       setSchedule(result);
 
-      // Save final stats from global state
+      // Save final stats - use result.assignments (the actual final schedule),
+      // not progress.current_assignments (which may be from an intermediate solution)
       const finalProgress = useAppStore.getState().generationProgress;
-      if (finalProgress?.current_assignments) {
-        setScheduleStats({
-          elapsed: finalProgress.elapsed_ms,
-          solutionCount: finalProgress.solution_count,
-          objectiveScore: finalProgress.current_objective,
-          bestBound: finalProgress.best_bound,
-          assignments: finalProgress.current_assignments,
-        });
-      }
+      setScheduleStats({
+        elapsed: finalProgress?.elapsed_ms ?? 0,
+        solutionCount: finalProgress?.solution_count,
+        objectiveScore: result.objectiveScore ?? finalProgress?.current_objective,
+        bestBound: finalProgress?.best_bound,
+        assignments: result.assignments,  // Use the final schedule, not progress snapshot
+      });
     } catch (err) {
       // Don't treat abort as error
       if (err instanceof Error && err.name === 'AbortError') {

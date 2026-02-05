@@ -1,161 +1,202 @@
 /**
- * Match Details Panel
- * Always-visible panel showing selected match details and impact analysis
- * Inline component (not a modal/overlay)
+ * Match Details Panel - Per Wireframe Design (Tailwind CSS)
+ * Shows selected match details with traffic light status, players, timing, and impacted matches
  */
+import { useState, useEffect, useMemo } from 'react';
 import type { ImpactAnalysis } from '../../hooks/useLiveOperations';
-import type { MatchDTO, MatchStateDTO } from '../../api/dto';
+import type { MatchDTO, MatchStateDTO, ScheduleAssignment } from '../../api/dto';
+import type { TrafficLightResult } from '../../utils/trafficLight';
 
 interface MatchDetailsPanelProps {
-  analysis: ImpactAnalysis | null;
+  assignment?: ScheduleAssignment;
   match: MatchDTO | undefined;
   matchState: MatchStateDTO | undefined;
   matches: MatchDTO[];
+  trafficLight?: TrafficLightResult;
+  analysis?: ImpactAnalysis | null;
+  playerNames: Map<string, string>;
   slotToTime: (slot: number) => string;
-  onActualTimeUpdate: (matchId: string, field: 'actualStartTime' | 'actualEndTime', time: string) => void;
-  onReoptimize: () => void;
+  onSelectMatch?: (matchId: string) => void;
 }
 
-function getMatchLabel(match: MatchDTO | undefined, fallbackId: string): string {
-  if (!match) return fallbackId.slice(0, 6);
-  if (match.matchNumber) return `M${match.matchNumber}`;
+function getMatchLabel(match: MatchDTO | undefined, fallbackId?: string): string {
+  if (!match) return fallbackId?.slice(0, 6) || '?';
   if (match.eventRank) return match.eventRank;
+  if (match.matchNumber) return `M${match.matchNumber}`;
   return match.id.slice(0, 6);
 }
 
+// Elapsed timer component
+function ElapsedTimer({ startTime }: { startTime: string | undefined }) {
+  const [elapsed, setElapsed] = useState('0:00');
+
+  useEffect(() => {
+    if (!startTime) {
+      setElapsed('0:00');
+      return;
+    }
+
+    const calculateElapsed = () => {
+      const [hours, minutes] = startTime.split(':').map(Number);
+      const start = new Date();
+      start.setHours(hours, minutes, 0, 0);
+      const now = new Date();
+      const diffMs = now.getTime() - start.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffSecs = Math.floor((diffMs % 60000) / 1000);
+      return `${diffMins}:${diffSecs.toString().padStart(2, '0')}`;
+    };
+
+    setElapsed(calculateElapsed());
+    const interval = setInterval(() => setElapsed(calculateElapsed()), 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return <span className="font-semibold tabular-nums">{elapsed}</span>;
+}
+
 export function MatchDetailsPanel({
-  analysis,
+  assignment,
   match,
   matchState,
   matches,
+  trafficLight,
+  analysis,
+  playerNames,
   slotToTime,
-  onActualTimeUpdate,
-  onReoptimize,
+  onSelectMatch,
 }: MatchDetailsPanelProps) {
-  const matchMap = new Map(matches.map((m) => [m.id, m]));
+  const matchMap = useMemo(() => new Map(matches.map((m) => [m.id, m])), [matches]);
 
-  // Empty state - no match selected
-  if (!analysis) {
+  // Empty state
+  if (!match || !assignment) {
     return (
       <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-        <div className="text-center">
-          <svg className="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-          </svg>
-          <p>Click a match in the grid</p>
-          <p className="text-xs mt-1">to see details and impact</p>
-        </div>
+        Click a match to see details
       </div>
     );
   }
 
-  const scheduledEndTime = slotToTime(analysis.scheduledEndSlot);
-  const actualEndTime = slotToTime(analysis.actualEndSlot);
+  const status = matchState?.status || 'scheduled';
+  const scheduledTime = slotToTime(assignment.slotId);
+  const light = trafficLight?.status || 'green';
+
+  // Get player names
+  const sideANames = (match.sideA || []).map((id) => playerNames.get(id) || id);
+  const sideBNames = (match.sideB || []).map((id) => playerNames.get(id) || id);
 
   return (
-    <div className="h-full overflow-y-auto space-y-2">
-      {/* Match header */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900 text-sm">
-          {getMatchLabel(match, analysis.matchId)}
-        </h3>
-        {match?.eventRank && (
-          <span className="text-xs text-gray-500">{match.eventRank}</span>
-        )}
-      </div>
-
-      {/* Time comparison - compact */}
-      <div className="bg-gray-50 rounded p-2 text-xs">
-        <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-          <div className="text-gray-500">Scheduled:</div>
-          <div className="font-mono">{scheduledEndTime}</div>
-          <div className="text-gray-500">Actual:</div>
-          <div className={`font-mono ${analysis.overrunSlots > 0 ? 'text-red-600 font-semibold' : ''}`}>
-            {actualEndTime}
-          </div>
+    <div className="h-full overflow-auto p-4">
+      {/* Header */}
+      <div className="mb-4">
+        <div className="text-xl font-extrabold text-gray-900 mb-0.5">
+          {getMatchLabel(match)}
         </div>
-        {analysis.overrunSlots > 0 && (
-          <div className="mt-1 pt-1 border-t border-gray-200 text-red-600 font-medium">
-            +{analysis.overrunSlots * 15} min overrun
-          </div>
-        )}
-      </div>
-
-      {/* Time inputs - compact */}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-xs text-gray-500 block">Start</label>
-          <input
-            type="time"
-            value={matchState?.actualStartTime || ''}
-            onChange={(e) => onActualTimeUpdate(analysis.matchId, 'actualStartTime', e.target.value)}
-            className="w-full px-1.5 py-1 border border-gray-300 rounded text-xs"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 block">End</label>
-          <input
-            type="time"
-            value={matchState?.actualEndTime || ''}
-            onChange={(e) => onActualTimeUpdate(analysis.matchId, 'actualEndTime', e.target.value)}
-            className="w-full px-1.5 py-1 border border-gray-300 rounded text-xs"
-          />
+        <div className="text-xs text-gray-500">
+          C{assignment.courtId} · Scheduled {scheduledTime}
         </div>
       </div>
 
-      {/* Impacted matches */}
-      {analysis.directlyImpacted.length > 0 && (
-        <div>
-          <div className="text-xs font-medium text-gray-700 mb-1">
-            Impacted ({analysis.directlyImpacted.length})
+      {/* Status badge */}
+      {status === 'scheduled' && (
+        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4 text-xs font-semibold ${
+          light === 'green'
+            ? 'bg-green-50 text-green-700'
+            : light === 'yellow'
+              ? 'bg-yellow-50 text-yellow-700'
+              : 'bg-red-50 text-red-700'
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            light === 'green' ? 'bg-green-500' : light === 'yellow' ? 'bg-yellow-500' : 'bg-red-500'
+          }`} />
+          {light === 'green' ? 'Ready to call' : light === 'yellow' ? 'Resting' : 'Blocked'}
+        </div>
+      )}
+      {status === 'called' && (
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4 text-xs font-semibold bg-blue-50 text-blue-700">
+          Called to court
+        </div>
+      )}
+      {status === 'started' && (
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4 text-xs font-semibold bg-green-50 text-green-700">
+          In Progress
+        </div>
+      )}
+      {status === 'finished' && (
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4 text-xs font-semibold bg-purple-50 text-purple-700">
+          Finished {matchState?.score ? `— ${matchState.score.sideA}-${matchState.score.sideB}` : ''}
+        </div>
+      )}
+
+      {/* Reason for yellow/red */}
+      {status === 'scheduled' && trafficLight?.reason && light !== 'green' && (
+        <div className={`px-3 py-2 rounded-lg text-xs mb-4 leading-relaxed ${
+          light === 'yellow'
+            ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          {trafficLight.reason}
+        </div>
+      )}
+
+      {/* Players */}
+      <div className="mb-4">
+        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+          Players
+        </div>
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">
+            A
+          </span>
+          <div className="text-sm font-medium">{sideANames.join(' & ')}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-5 h-5 rounded-full bg-pink-100 flex items-center justify-center text-[10px] font-bold text-pink-600">
+            B
+          </span>
+          <div className="text-sm font-medium">{sideBNames.join(' & ')}</div>
+        </div>
+      </div>
+
+      {/* Timing (only for in_progress) */}
+      {status === 'started' && (
+        <div className="mb-4">
+          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+            Timing
           </div>
-          <div className="space-y-1">
-            {analysis.directlyImpacted.slice(0, 5).map((matchId) => {
-              const impactedMatch = matchMap.get(matchId);
-              return (
-                <div
-                  key={matchId}
-                  className="flex items-center gap-1 px-1.5 py-1 bg-orange-50 border border-orange-200 rounded text-xs"
-                >
-                  <span className="font-medium">{getMatchLabel(impactedMatch, matchId)}</span>
-                </div>
-              );
-            })}
-            {analysis.directlyImpacted.length > 5 && (
-              <div className="text-xs text-gray-500">
-                +{analysis.directlyImpacted.length - 5} more
-              </div>
-            )}
+          <div className="flex justify-between text-sm mb-1">
+            <span className="text-gray-500">Elapsed</span>
+            <ElapsedTimer startTime={matchState?.actualStartTime} />
           </div>
         </div>
       )}
 
-      {/* Suggested action - compact */}
-      <div className={`rounded p-2 text-xs ${
-        analysis.suggestedAction === 'reoptimize' ? 'bg-orange-50 border border-orange-200' :
-        analysis.suggestedAction === 'none' ? 'bg-green-50 border border-green-200' :
-        'bg-blue-50 border border-blue-200'
-      }`}>
-        <div className="font-medium mb-0.5">
-          {analysis.suggestedAction === 'none' && 'On time'}
-          {analysis.suggestedAction === 'wait' && 'Wait'}
-          {analysis.suggestedAction === 'manual_adjust' && 'Manual adjust'}
-          {analysis.suggestedAction === 'reoptimize' && 'Re-optimize needed'}
-        </div>
-        <div className="text-gray-600">
-          {analysis.suggestedAction === 'none' && 'No action needed'}
-          {analysis.suggestedAction === 'wait' && 'No other matches affected'}
-          {analysis.suggestedAction === 'manual_adjust' && 'Adjust impacted matches'}
-          {analysis.suggestedAction === 'reoptimize' && (
-            <button
-              onClick={onReoptimize}
-              className="text-blue-600 hover:text-blue-800 underline"
-            >
-              Click to re-optimize
-            </button>
+      {/* Impacted Matches */}
+      {analysis && analysis.directlyImpacted.length > 0 && (
+        <div>
+          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+            Impacted Matches ({analysis.directlyImpacted.length})
+          </div>
+          {analysis.directlyImpacted.slice(0, 5).map((matchId) => {
+            const impactedMatch = matchMap.get(matchId);
+            return (
+              <div
+                key={matchId}
+                onClick={() => onSelectMatch?.(matchId)}
+                className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded mb-1 text-xs font-medium cursor-pointer hover:border-gray-300 flex justify-between items-center"
+              >
+                <span>{getMatchLabel(impactedMatch, matchId)}</span>
+                <span className="text-gray-400">→</span>
+              </div>
+            );
+          })}
+          {analysis.directlyImpacted.length > 5 && (
+            <div className="text-xs text-gray-400">
+              +{analysis.directlyImpacted.length - 5} more
+            </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

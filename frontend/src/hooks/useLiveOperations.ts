@@ -97,6 +97,7 @@ export function useLiveOperations() {
   }, [matches]);
 
   // Calculate impacted matches (matches affected by overruns)
+  // Only scheduled matches can be impacted - started/finished matches are already in progress or done
   const impactedMatches = useMemo(() => {
     if (!schedule || overrunMatches.length === 0 || !config) return [];
 
@@ -112,6 +113,10 @@ export function useLiveOperations() {
       // Find matches with same players scheduled after the overrun
       for (const assignment of schedule.assignments) {
         if (assignment.matchId === overrun.matchId) continue;
+
+        // Only scheduled matches can be impacted (not started/finished/called)
+        const assignmentState = matchStates[assignment.matchId];
+        if (assignmentState && assignmentState.status !== 'scheduled') continue;
 
         // Only future matches
         if (assignment.slotId < actualEndSlot) continue;
@@ -147,12 +152,18 @@ export function useLiveOperations() {
       const overrunSlots = Math.max(0, actualEndSlot - scheduledEndSlot);
 
       // Find directly impacted matches
+      // Only scheduled matches can be impacted - started/finished/called matches are already committed
       const matchPlayers = getMatchPlayerIds(matchId);
       const directlyImpacted: string[] = [];
       const cascadeImpacted: string[] = [];
 
       for (const a of schedule.assignments) {
         if (a.matchId === matchId) continue;
+
+        // Only scheduled matches can be impacted
+        const aState = matchStates[a.matchId];
+        if (aState && aState.status !== 'scheduled') continue;
+
         if (a.slotId < actualEndSlot) continue;
 
         const aPlayers = getMatchPlayerIds(a.matchId);

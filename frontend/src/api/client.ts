@@ -122,6 +122,8 @@ class ApiClient {
                     best_bound: event.best_bound,
                     solution_count: event.solution_count,
                     current_assignments: event.current_assignments,
+                    gap_percent: event.gap_percent,
+                    messages: event.messages,
                   });
                 } else if (event.type === 'complete') {
                   resolve(event.result as ScheduleDTO);

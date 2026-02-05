@@ -83,6 +83,7 @@ class ProgressCallback(cp_model.CpSolverSolutionCallback):
         self.last_objective = None
         self.last_gap_checkpoint = 100  # Track gap milestones
         self.time_checkpoints = {5: False, 10: False, 30: False, 60: False}  # seconds
+        self.initial_stats_sent = False  # Track if we've sent initial model stats
 
     def on_solution_callback(self) -> None:
         """Called by solver when a new solution is found."""
@@ -114,15 +115,15 @@ class ProgressCallback(cp_model.CpSolverSolutionCallback):
         # Generate verbose messages
         messages = []
 
-        # Time checkpoint messages
+        # Time checkpoint messages (always show)
         for checkpoint, reported in self.time_checkpoints.items():
             if not reported and elapsed_sec >= checkpoint:
                 self.time_checkpoints[checkpoint] = True
-                if gap_percent is not None and gap_percent > 1:
-                    messages.append({
-                        'type': 'progress',
-                        'text': f'Searching... {int(elapsed_sec)}s elapsed, {gap_percent:.1f}% gap remaining'
-                    })
+                gap_info = f', {gap_percent:.2f}% gap' if gap_percent is not None else ''
+                messages.append({
+                    'type': 'progress',
+                    'text': f'Still searching... {int(elapsed_sec)}s elapsed{gap_info}'
+                })
 
         # Gap milestone messages (report when gap drops significantly)
         if gap_percent is not None:
@@ -137,13 +138,38 @@ class ProgressCallback(cp_model.CpSolverSolutionCallback):
                         })
                     break
 
-        # Large improvement message
-        if self.last_objective is not None and current_obj < self.last_objective:
-            improvement = self.last_objective - current_obj
-            if improvement > 50:
+        # First solution - include model stats and initial solution message
+        if self.solution_count == 1 and not self.initial_stats_sent:
+            self.initial_stats_sent = True
+            # Add model stats first
+            if self.model_stats:
                 messages.append({
                     'type': 'progress',
-                    'text': f'Major improvement found: -{int(improvement)} penalty points'
+                    'text': f'Model: {self.model_stats.get("num_matches", 0)} matches, {self.model_stats.get("num_variables", 0)} variables'
+                })
+                if self.model_stats.get('multi_match_players', 0) > 0:
+                    messages.append({
+                        'type': 'progress',
+                        'text': f'Scheduling {self.model_stats["multi_match_players"]} players with multiple events'
+                    })
+                if self.model_stats.get('difficulty'):
+                    messages.append({
+                        'type': 'progress',
+                        'text': f'Problem complexity: {self.model_stats["difficulty"]}'
+                    })
+            # Then add initial solution message
+            messages.append({
+                'type': 'progress',
+                'text': f'Initial solution found with score {int(current_obj)}'
+            })
+
+        # Large improvement message (threshold: 100 points)
+        if self.last_objective is not None and current_obj < self.last_objective:
+            improvement = self.last_objective - current_obj
+            if improvement >= 100:
+                messages.append({
+                    'type': 'progress',
+                    'text': f'Major improvement: -{int(improvement)} points'
                 })
         self.last_objective = current_obj
 
@@ -748,37 +774,9 @@ class CPSATScheduler:
                 unscheduled_matches=list(self.matches.keys()),
             )
 
-        # Compute model statistics for verbose logging
+        # Compute model statistics for verbose logging (passed to callback)
         model_stats = self._compute_model_stats()
-        difficulty = self._estimate_difficulty(model_stats)
-
-        # Send initial model info via callback
-        if progress_callback:
-            init_messages = [
-                {
-                    'type': 'progress',
-                    'text': f'Model: {model_stats["num_matches"]} matches, {model_stats["num_variables"]} variables'
-                },
-            ]
-            if model_stats['multi_match_players'] > 0:
-                init_messages.append({
-                    'type': 'progress',
-                    'text': f'Scheduling {model_stats["multi_match_players"]} players with multiple events'
-                })
-            if model_stats['locked_count'] > 0:
-                init_messages.append({
-                    'type': 'progress',
-                    'text': f'{model_stats["locked_count"]} matches locked/frozen'
-                })
-            init_messages.append({
-                'type': 'progress',
-                'text': f'Problem complexity: {difficulty}'
-            })
-            progress_callback({
-                'elapsed_ms': 0,
-                'solution_count': 0,
-                'messages': init_messages,
-            })
+        model_stats['difficulty'] = self._estimate_difficulty(model_stats)
 
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = self.solver_options.time_limit_seconds

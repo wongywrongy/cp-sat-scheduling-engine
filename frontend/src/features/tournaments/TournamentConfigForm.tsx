@@ -261,7 +261,6 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                     rankCounts: { ...formData.rankCounts, MS: parseInt(e.target.value) || 0 }
                   })}
                   min={0}
-                  max={10}
                   className="h-9"
                 />
               </div>
@@ -276,7 +275,6 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                     rankCounts: { ...formData.rankCounts, WS: parseInt(e.target.value) || 0 }
                   })}
                   min={0}
-                  max={10}
                   className="h-9"
                 />
               </div>
@@ -291,7 +289,6 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                     rankCounts: { ...formData.rankCounts, MD: parseInt(e.target.value) || 0 }
                   })}
                   min={0}
-                  max={10}
                   className="h-9"
                 />
               </div>
@@ -306,7 +303,6 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                     rankCounts: { ...formData.rankCounts, WD: parseInt(e.target.value) || 0 }
                   })}
                   min={0}
-                  max={10}
                   className="h-9"
                 />
               </div>
@@ -321,7 +317,6 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                     rankCounts: { ...formData.rankCounts, XD: parseInt(e.target.value) || 0 }
                   })}
                   min={0}
-                  max={10}
                   className="h-9"
                 />
               </div>

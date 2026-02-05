@@ -10,6 +10,7 @@ interface PlayerListItemProps {
   onToggleSelect: () => void;
   onSchoolChange: (schoolId: string) => void;
   onRanksChange: (ranks: string[]) => void;
+  onRemoveRankFromPlayer?: (playerId: string, rank: string) => void;
   onEdit: () => void;
   onDelete: () => void;
 }
@@ -34,30 +35,30 @@ export function PlayerListItem({
   onToggleSelect,
   onSchoolChange,
   onRanksChange,
+  onRemoveRankFromPlayer,
   onEdit,
   onDelete,
 }: PlayerListItemProps) {
   return (
-    <tr className={`${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+    <tr className={`${isSelected ? 'bg-gray-100' : 'hover:bg-gray-50'}`}>
       {/* Checkbox Column */}
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-2">
         <input
           type="checkbox"
           checked={isSelected}
           onChange={onToggleSelect}
-          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          className="w-4 h-4 text-gray-800 border-gray-300 rounded focus:ring-gray-500"
           aria-label={`Select ${player.name}`}
         />
       </td>
 
       {/* Player Name Column */}
-      <td className="px-3 py-2.5">
-        <div className="font-medium text-gray-900 text-sm">{player.name}</div>
-        <div className="text-xs text-gray-500">{player.id}</div>
+      <td className="px-3 py-2">
+        <span className="font-medium text-gray-800">{player.name}</span>
       </td>
 
       {/* School Column */}
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-2">
         <SchoolBadgeEditor
           currentSchoolId={player.groupId}
           schools={schools}
@@ -66,19 +67,20 @@ export function PlayerListItem({
       </td>
 
       {/* Events/Ranks Column */}
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-2">
         <RankBadgeEditor
           currentRanks={player.ranks || []}
           schoolId={player.groupId}
           playerId={player.id}
           onRanksChange={onRanksChange}
+          onRemoveRankFromPlayer={onRemoveRankFromPlayer}
         />
       </td>
 
       {/* Actions Column */}
-      <td className="px-3 py-2.5 text-right">
+      <td className="px-3 py-2 text-right">
         <Menu as="div" className="relative inline-block text-left">
-          <Menu.Button className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+          <Menu.Button className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 rounded">
             <span className="sr-only">Open menu</span>
             <svg
               className="w-5 h-5"

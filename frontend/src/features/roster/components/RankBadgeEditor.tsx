@@ -8,6 +8,7 @@ interface RankBadgeEditorProps {
   schoolId: string | null;
   playerId: string;
   onRanksChange: (ranks: string[]) => void;
+  onRemoveRankFromPlayer?: (playerId: string, rank: string) => void;
   className?: string;
 }
 
@@ -29,11 +30,14 @@ export function RankBadgeEditor({
   schoolId,
   playerId,
   onRanksChange,
+  onRemoveRankFromPlayer,
   className = '',
 }: RankBadgeEditorProps) {
   const [selectedRanks, setSelectedRanks] = useState<string[]>(currentRanks);
-  const { availableRanks, hasIncompletePair } = useRankValidation(schoolId, playerId);
+  const { availableRanks, getPlayersWithRank } = useRankValidation(schoolId, playerId);
   const [isOpen, setIsOpen] = useState(false);
+  const [pendingReassign, setPendingReassign] = useState<{ rank: string; currentHolder: string } | null>(null);
+  const [reassignedRanks, setReassignedRanks] = useState<Map<string, string[]>>(new Map());
 
   // Sync selectedRanks when currentRanks prop changes
   useEffect(() => {
@@ -63,14 +67,48 @@ export function RankBadgeEditor({
     }
   };
 
+  const handleReassignRank = (rank: string, currentHolder: string) => {
+    setPendingReassign({ rank, currentHolder });
+  };
+
+  const confirmReassign = () => {
+    if (pendingReassign) {
+      setSelectedRanks(prev => [...prev, pendingReassign.rank]);
+      // Track which player(s) had this rank so we can remove it on Apply
+      const playersWithRank = getPlayersWithRank(pendingReassign.rank);
+      if (playersWithRank.length > 0) {
+        setReassignedRanks(prev => {
+          const next = new Map(prev);
+          next.set(pendingReassign.rank, playersWithRank.map(p => p.id));
+          return next;
+        });
+      }
+      setPendingReassign(null);
+    }
+  };
+
+  const cancelReassign = () => {
+    setPendingReassign(null);
+  };
+
   const handleApply = () => {
+    // First, remove reassigned ranks from original holders
+    if (onRemoveRankFromPlayer) {
+      reassignedRanks.forEach((playerIds, rank) => {
+        playerIds.forEach(pid => {
+          onRemoveRankFromPlayer(pid, rank);
+        });
+      });
+    }
+    // Then update current player's ranks
     onRanksChange(selectedRanks);
+    setReassignedRanks(new Map());
     setIsOpen(false);
   };
 
   if (!schoolId) {
     return (
-      <div className={`text-sm text-gray-400 italic ${className}`}>
+      <div className={`w-full px-2 py-1.5 text-sm text-gray-400 italic ${className}`}>
         Assign school first
       </div>
     );
@@ -79,37 +117,34 @@ export function RankBadgeEditor({
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-1 text-sm hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+        onClick={() => {
+          setReassignedRanks(new Map());
+          setIsOpen(true);
+        }}
+        className={`w-full flex items-center justify-between px-2 py-1 text-sm text-left border rounded transition-colors ${
+          currentRanks.length > 0
+            ? 'bg-gray-50 border-gray-200 hover:border-gray-300 text-gray-800'
+            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-400'
+        }`}
       >
         {currentRanks.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {currentRanks.map((rank) => {
-              const isIncomplete = hasIncompletePair(rank);
-              return (
-                <span
-                  key={rank}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ${
-                    isIncomplete
-                      ? 'bg-yellow-100 text-yellow-800 border border-yellow-300'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}
-                  title={isIncomplete ? 'Incomplete doubles pair - needs 2 players' : undefined}
-                >
-                  {isIncomplete && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />}
-                  {rank}
-                </span>
-              );
-            })}
-            <span className="inline-block px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded">
-              Edit
-            </span>
-          </div>
+          <span className="truncate">{currentRanks.sort().join(', ')}</span>
         ) : (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200">
-            + Add Ranks
-          </span>
+          <span>Add events</span>
         )}
+        <svg
+          className="w-3 h-3 text-gray-400 flex-shrink-0 ml-1"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
       </button>
 
       <Transition appear show={isOpen} as={Fragment}>
@@ -153,8 +188,35 @@ export function RankBadgeEditor({
                         availableRanks={availableRanks}
                         onToggleRank={handleToggleRank}
                         onSelectAllInCategory={handleSelectAllInCategory}
+                        onReassignRank={handleReassignRank}
                         showSelected={false}
                       />
+                    </div>
+                  )}
+
+                  {/* Reassignment Confirmation */}
+                  {pendingReassign && (
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                      <p className="text-sm text-amber-800 mb-3">
+                        <strong>{pendingReassign.rank}</strong> is currently assigned to <strong>{pendingReassign.currentHolder}</strong>.
+                        Reassign to this player?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={confirmReassign}
+                          className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-700"
+                        >
+                          Yes, reassign
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelReassign}
+                          className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   )}
 

@@ -12,11 +12,11 @@ interface LiveConflictsPanelProps {
   status: 'solving' | 'complete' | 'error';
 }
 
-const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  overlap: { label: 'Player Overlap', color: 'bg-red-400' },
-  rest: { label: 'Rest Time', color: 'bg-orange-400' },
-  court_capacity: { label: 'Court Capacity', color: 'bg-purple-400' },
-  availability: { label: 'Availability', color: 'bg-blue-400' },
+const TYPE_CONFIG: Record<string, { label: string }> = {
+  overlap: { label: 'Player Overlap' },
+  rest: { label: 'Rest Time' },
+  court_capacity: { label: 'Court Capacity' },
+  availability: { label: 'Availability' },
 };
 
 // Animated counter component
@@ -129,35 +129,22 @@ export function LiveConflictsPanel({
         </div>
       </div>
 
-      {/* Violations by type with staggered animation */}
+      {/* Violations by type - simple stats */}
       <div className="space-y-1">
-        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">By Type</h4>
-        {allTypes.map((type, index) => {
+        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Stats</h4>
+        {allTypes.map((type) => {
           const count = byType[type] || 0;
           const config = TYPE_CONFIG[type];
-          const isViolated = count > 0;
 
           return (
             <div
               key={type}
-              className={`flex items-center justify-between p-1.5 rounded transition-all duration-300 ${
-                isViolated ? 'bg-red-50' : 'bg-gray-50'
-              }`}
-              style={{ animationDelay: `${index * 50}ms` }}
+              className="flex items-center justify-between py-1 text-sm"
             >
-              <span className={`text-sm flex items-center gap-2 transition-colors duration-300 ${isViolated ? 'text-red-700' : 'text-gray-600'}`}>
-                <span className={`w-2 h-2 rounded-full ${config.color} ${status === 'solving' ? 'animate-pulse' : ''}`} />
-                {config.label}
+              <span className="text-gray-600">{config.label}</span>
+              <span className={`font-medium ${count > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
+                <AnimatedCounter value={count} />
               </span>
-              <div className="flex items-center gap-1">
-                {count === 0 ? (
-                  <span className="w-2 h-2 rounded-full bg-green-500 transition-all duration-300" />
-                ) : (
-                  <span className="font-semibold text-red-600 min-w-[20px] text-right">
-                    <AnimatedCounter value={count} />
-                  </span>
-                )}
-              </div>
             </div>
           );
         })}

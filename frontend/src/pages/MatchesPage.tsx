@@ -79,39 +79,9 @@ export function MatchesPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-2xl font-bold">Matches</h2>
-        <div className="flex gap-1">
-          <button
-            onClick={() => {
-              setMatchType('dual');
-              setShowVisualGenerator(true);
-            }}
-            className="px-3 py-1.5 bg-green-600 text-white rounded-sm text-sm hover:bg-green-700"
-          >
-            Visual Generator (Dual)
-          </button>
-          <button
-            onClick={() => {
-              setMatchType('tri');
-              setShowVisualGenerator(true);
-            }}
-            className="px-3 py-1.5 bg-purple-600 text-white rounded-sm text-sm hover:bg-purple-700"
-          >
-            Visual Generator (Tri-Meet)
-          </button>
-          <button
-            onClick={handleAddMatch}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
-          >
-            Add Match Manually
-          </button>
-        </div>
-      </div>
-
+    <div className="max-w-7xl mx-auto space-y-3">
       {error && (
-        <div className="mb-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded-sm text-sm">
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
           {error}
         </div>
       )}
@@ -137,8 +107,8 @@ export function MatchesPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center h-48">
-          <div className="text-gray-500">Loading matches...</div>
+        <div className="flex items-center justify-center h-48 bg-white rounded border border-gray-200">
+          <div className="text-gray-500 text-sm">Loading matches...</div>
         </div>
       ) : (
         <MatchesList
@@ -146,6 +116,15 @@ export function MatchesPage() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onSelectionChange={setSelectedMatchIds}
+          onAddMatch={handleAddMatch}
+          onVisualGeneratorDual={() => {
+            setMatchType('dual');
+            setShowVisualGenerator(true);
+          }}
+          onVisualGeneratorTri={() => {
+            setMatchType('tri');
+            setShowVisualGenerator(true);
+          }}
         />
       )}
 

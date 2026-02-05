@@ -1,4 +1,9 @@
 import { useAppStore } from '../../store/appStore';
+import type { RosterGroupDTO } from '../../api/dto';
+
+interface RankCoverageDashboardProps {
+  onEditSchool?: (school: RosterGroupDTO) => void;
+}
 
 /**
  * RankCoverageDashboard Component
@@ -8,7 +13,7 @@ import { useAppStore } from '../../store/appStore';
  * - Color-coded cells: Green (complete), Yellow (partial), Red (empty)
  * - Coverage totals per school
  */
-export function RankCoverageDashboard() {
+export function RankCoverageDashboard({ onEditSchool }: RankCoverageDashboardProps) {
   const { config, groups, players } = useAppStore();
 
   if (!config?.rankCounts || groups.length === 0) {
@@ -40,12 +45,11 @@ export function RankCoverageDashboard() {
     return { filled, expected, percent };
   };
 
-  // Get cell styling based on coverage
+  // Get cell styling based on coverage (3 colors only)
   const getCellStyle = (percent: number, expected: number) => {
     if (expected === 0) return 'bg-gray-100 text-gray-400';
     if (percent === 100) return 'bg-green-100 text-green-800 font-semibold';
-    if (percent >= 50) return 'bg-yellow-100 text-yellow-800';
-    if (percent > 0) return 'bg-orange-100 text-orange-800';
+    if (percent > 0) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   };
 
@@ -69,8 +73,8 @@ export function RankCoverageDashboard() {
         <h3 className="text-sm font-semibold text-gray-800">Rank Coverage</h3>
         <div className="flex gap-3 text-xs text-gray-500">
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-200"></span>100%</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-yellow-200"></span>50%+</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-200"></span>&lt;50%</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-yellow-200"></span>1-99%</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-200"></span>0%</span>
         </div>
       </div>
 
@@ -107,7 +111,12 @@ export function RankCoverageDashboard() {
               return (
                 <tr key={school.id} className="hover:bg-gray-50">
                   <td className="px-3 py-2 text-sm font-medium text-gray-900 sticky left-0 bg-white">
-                    {school.name}
+                    <button
+                      onClick={() => onEditSchool?.(school)}
+                      className="hover:text-gray-600 transition-colors"
+                    >
+                      {school.name}
+                    </button>
                   </td>
                   {rankCategories.map(cat => {
                     const coverage = getCoverage(school.id, cat);
@@ -123,13 +132,12 @@ export function RankCoverageDashboard() {
                       </td>
                     );
                   })}
-                  <td className={`px-3 py-2 text-center text-sm font-semibold ${
-                    totalPercent === 100 ? 'bg-green-50 text-green-800' :
-                    totalPercent >= 75 ? 'bg-yellow-50 text-yellow-800' :
-                    totalPercent >= 50 ? 'bg-orange-50 text-orange-800' :
-                    'bg-red-50 text-red-800'
+                  <td className={`px-3 py-2 text-center text-sm ${
+                    totalPercent === 100 ? 'bg-green-100 text-green-800 font-semibold' :
+                    totalPercent > 0 ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
                   }`}>
-                    <span className="font-bold">{schoolTotal.filled}/{schoolTotal.expected}</span>
+                    <span className="font-semibold">{schoolTotal.filled}/{schoolTotal.expected}</span>
                   </td>
                 </tr>
               );

@@ -29,18 +29,25 @@ export function SchoolBadgeEditor({
 }: SchoolBadgeEditorProps) {
   const currentSchool = schools.find(s => s.id === currentSchoolId);
   const displayText = currentSchool?.name || 'No School';
-  const badgeColor = currentSchool
-    ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-    : 'bg-gray-100 text-gray-600 hover:bg-gray-200';
+  const schoolColor = currentSchool?.metadata?.color;
 
   return (
-    <Menu as="div" className={`relative inline-block text-left ${className}`}>
+    <Menu as="div" className={`relative w-full ${className}`}>
       <Menu.Button
-        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium transition-colors ${badgeColor}`}
+        className="w-full flex items-center justify-between px-2 py-1 text-sm text-left border rounded transition-colors hover:border-gray-300"
+        style={schoolColor ? {
+          backgroundColor: `${schoolColor}15`,
+          borderColor: `${schoolColor}40`,
+        } : {
+          backgroundColor: 'white',
+          borderColor: '#e5e7eb',
+        }}
       >
-        <span>{displayText}</span>
+        <span className={`truncate ${currentSchool ? 'text-gray-800' : 'text-gray-400'}`}>
+          {displayText}
+        </span>
         <svg
-          className="w-4 h-4"
+          className="w-3 h-3 text-gray-400 flex-shrink-0 ml-1"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -78,13 +85,13 @@ export function SchoolBadgeEditor({
                       <button
                         onClick={() => onSchoolChange(school.id)}
                         className={`${
-                          active ? 'bg-blue-50 text-blue-900' : 'text-gray-900'
-                        } group flex w-full items-center justify-between px-4 py-2 text-sm`}
+                          active ? 'bg-gray-100' : ''
+                        } group flex w-full items-center justify-between px-4 py-2 text-sm text-gray-900`}
                       >
                         <span>{school.name}</span>
                         {isSelected && (
                           <svg
-                            className="h-4 w-4 text-blue-600"
+                            className="h-4 w-4 text-gray-600"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"

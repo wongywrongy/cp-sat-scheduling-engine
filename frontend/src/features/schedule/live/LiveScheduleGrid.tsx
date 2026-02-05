@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import { LiveMetricsBar } from './LiveMetricsBar';
 import { LiveTimelineGrid } from './LiveTimelineGrid';
 import { LiveConflictsPanel } from './LiveConflictsPanel';
+import { ScheduleActions } from '../ScheduleActions';
 import { computeConstraintViolations } from '../../../utils/constraintChecker';
 import type {
   ScheduleAssignment,
@@ -25,6 +26,11 @@ interface LiveScheduleGridProps {
   bestBound?: number;
   status: 'solving' | 'complete' | 'error';
   totalMatches?: number;
+  onGenerate?: () => void;
+  onReoptimize?: () => void;
+  generating?: boolean;
+  reoptimizing?: boolean;
+  hasSchedule?: boolean;
 }
 
 export function LiveScheduleGrid({
@@ -38,6 +44,11 @@ export function LiveScheduleGrid({
   bestBound,
   status,
   totalMatches,
+  onGenerate,
+  onReoptimize,
+  generating,
+  reoptimizing,
+  hasSchedule,
 }: LiveScheduleGridProps) {
   // Compute violations client-side
   const violations = useMemo(
@@ -46,20 +57,31 @@ export function LiveScheduleGrid({
   );
 
   return (
-    <div className="space-y-2">
-      {/* Metrics Bar */}
-      <LiveMetricsBar
-        elapsed={elapsed}
-        solutionCount={solutionCount}
-        objectiveScore={objectiveScore}
-        bestBound={bestBound}
-        status={status}
-      />
+    <div className="bg-white rounded border border-gray-200">
+      {/* Header with metrics and actions */}
+      <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+        <LiveMetricsBar
+          elapsed={elapsed}
+          solutionCount={solutionCount}
+          objectiveScore={objectiveScore}
+          bestBound={bestBound}
+          status={status}
+        />
+        {onGenerate && (
+          <ScheduleActions
+            onGenerate={onGenerate}
+            onReoptimize={onReoptimize!}
+            generating={generating || false}
+            reoptimizing={reoptimizing || false}
+            hasSchedule={hasSchedule || false}
+          />
+        )}
+      </div>
 
       {/* Main content: Grid + Conflicts Panel */}
-      <div className="flex gap-2">
+      <div className="flex">
         {/* Timeline Grid (main area) */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 p-3">
           <LiveTimelineGrid
             assignments={assignments}
             matches={matches}
@@ -70,7 +92,7 @@ export function LiveScheduleGrid({
         </div>
 
         {/* Conflicts Panel (sidebar) */}
-        <div className="w-56 flex-shrink-0">
+        <div className="w-48 flex-shrink-0 border-l border-gray-200 p-2">
           <LiveConflictsPanel
             violations={violations}
             matchCount={assignments.length}

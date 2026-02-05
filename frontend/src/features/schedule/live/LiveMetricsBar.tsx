@@ -105,116 +105,51 @@ export function LiveMetricsBar({
   const { bg, text, glow } = statusConfig[status];
 
   return (
-    <div className={`bg-white border border-gray-200 rounded p-2 shadow-sm transition-all duration-500 ${status === 'solving' ? 'shadow-md' : ''}`}>
-      <div className="flex items-center justify-between gap-3">
-        {/* Status indicator */}
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <div
-              className={`w-2 h-2 rounded-full ${bg} transition-all duration-300
-                ${status === 'solving' ? 'animate-pulse shadow-lg ' + glow : ''}`}
-            />
-            {status === 'solving' && (
-              <div className={`absolute inset-0 w-2 h-2 rounded-full ${bg} animate-ping opacity-50`} />
-            )}
-          </div>
-          <span className="font-semibold text-base text-gray-900">{text}</span>
+    <div className="flex items-center gap-4">
+      {/* Status indicator */}
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <div
+            className={`w-2 h-2 rounded-full ${bg} transition-all duration-300
+              ${status === 'solving' ? 'animate-pulse' : ''}`}
+          />
+          {status === 'solving' && (
+            <div className={`absolute inset-0 w-2 h-2 rounded-full ${bg} animate-ping opacity-50`} />
+          )}
         </div>
-
-        {/* Metrics with animated numbers */}
-        <div className="flex items-center gap-4">
-          {/* Elapsed time */}
-          <div className="text-center">
-            <div className="text-lg font-mono font-bold text-blue-600 tabular-nums">
-              {formatTime(elapsed)}
-            </div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Elapsed</div>
-          </div>
-
-          {/* Solutions found with flash effect */}
-          <div className={`text-center transition-all duration-300 ${showPulse ? 'scale-110' : ''}`}>
-            <div className={`text-lg font-mono font-bold tabular-nums transition-colors duration-300 ${showPulse ? 'text-green-500' : 'text-green-600'}`}>
-              <AnimatedNumber
-                value={solutionCount}
-                formatFn={(n) => Math.round(n).toString()}
-              />
-            </div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Solutions</div>
-          </div>
-
-          {/* Objective score */}
-          <div className="text-center">
-            <div className="text-lg font-mono font-bold text-amber-600 tabular-nums">
-              <AnimatedNumber
-                value={objectiveScore}
-                formatFn={(n) => Math.round(n).toString()}
-              />
-            </div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Score</div>
-          </div>
-
-          {/* Optimality gap */}
-          <div className="text-center min-w-[60px]">
-            <div className="text-lg font-mono font-bold text-purple-600 tabular-nums">
-              {gap !== null ? (
-                <AnimatedNumber
-                  value={gap}
-                  formatFn={(n) => `${n.toFixed(1)}%`}
-                />
-              ) : '-'}
-            </div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Gap</div>
-          </div>
-        </div>
-
-        {/* Progress bar with animated fill */}
-        <div className="flex-1 max-w-xs">
-          <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
-            {/* Background shimmer during solving */}
-            {status === 'solving' && (
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-300 to-transparent animate-metrics-shimmer" />
-            )}
-            {/* Progress fill */}
-            <div
-              className={`h-full transition-all duration-500 ease-out rounded-full relative overflow-hidden
-                ${status === 'complete' ? 'bg-green-500' : 'bg-gradient-to-r from-blue-600 to-blue-400'}`}
-              style={{ width: `${status === 'complete' ? 100 : (gap !== null ? Math.max(0, 100 - gap) : 0)}%` }}
-            >
-              {/* Shine effect */}
-              {status === 'solving' && (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-metrics-shine" />
-              )}
-            </div>
-          </div>
-          <div className="text-xs text-gray-500 text-center mt-1">
-            {status === 'complete' ? (
-              <span className="text-green-600 font-medium">Optimization complete</span>
-            ) : gap !== null ? (
-              <span className="tabular-nums">{(100 - gap).toFixed(1)}% optimal</span>
-            ) : (
-              <span className="animate-pulse">Computing...</span>
-            )}
-          </div>
-        </div>
+        <span className="text-sm font-medium text-gray-700">{text}</span>
       </div>
 
-      {/* CSS for custom animations */}
-      <style>{`
-        @keyframes metrics-shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        .animate-metrics-shimmer {
-          animation: metrics-shimmer 2s linear infinite;
-        }
-        @keyframes metrics-shine {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(200%); }
-        }
-        .animate-metrics-shine {
-          animation: metrics-shine 1.5s ease-in-out infinite;
-        }
-      `}</style>
+      {/* Metrics - compact inline */}
+      <div className="flex items-center gap-3 text-sm">
+        <div className="flex items-center gap-1">
+          <span className="text-gray-500">Time:</span>
+          <span className="font-mono font-medium text-gray-800 tabular-nums">{formatTime(elapsed)}</span>
+        </div>
+
+        <div className={`flex items-center gap-1 transition-all duration-300 ${showPulse ? 'scale-105' : ''}`}>
+          <span className="text-gray-500">Solutions:</span>
+          <span className={`font-mono font-medium tabular-nums ${showPulse ? 'text-green-600' : 'text-gray-800'}`}>
+            <AnimatedNumber value={solutionCount} formatFn={(n) => Math.round(n).toString()} />
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <span className="text-gray-500">Score:</span>
+          <span className="font-mono font-medium text-gray-800 tabular-nums">
+            <AnimatedNumber value={objectiveScore} formatFn={(n) => Math.round(n).toString()} />
+          </span>
+        </div>
+
+        {gap !== null && (
+          <div className="flex items-center gap-1">
+            <span className="text-gray-500">Gap:</span>
+            <span className="font-mono font-medium text-gray-800 tabular-nums">
+              <AnimatedNumber value={gap} formatFn={(n) => `${n.toFixed(1)}%`} />
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

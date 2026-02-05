@@ -39,35 +39,33 @@ export function ScheduleView({ schedule, view, config }: ScheduleViewProps) {
     const slots = Array.from(bySlot.keys()).sort((a, b) => a - b);
 
     return (
-      <div className="bg-white rounded shadow-sm overflow-hidden">
-        <div className="divide-y divide-gray-200">
-          {slots.map((slotId) => {
-            const slotAssignments = bySlot.get(slotId)!;
-            const firstAssignment = slotAssignments[0];
-            const timeRange = formatSlotRange(
-              slotId,
-              firstAssignment.durationSlots,
-              config.dayStart,
-              config.intervalMinutes
-            );
+      <div className="divide-y divide-gray-100">
+        {slots.map((slotId) => {
+          const slotAssignments = bySlot.get(slotId)!;
+          const firstAssignment = slotAssignments[0];
+          const timeRange = formatSlotRange(
+            slotId,
+            firstAssignment.durationSlots,
+            config.dayStart,
+            config.intervalMinutes
+          );
 
-            return (
-              <div key={slotId} className="p-2">
-                <h3 className="font-semibold text-base mb-1">{timeRange}</h3>
-                <div className="space-y-0.5">
-                  {slotAssignments
-                    .sort((a, b) => a.courtId - b.courtId)
-                    .slice(0, config.courtCount)
-                    .map((assignment) => (
-                      <div key={`${assignment.matchId}-${assignment.courtId}`} className="text-sm text-gray-700">
-                        {formatMatchLine(assignment)}
-                      </div>
-                    ))}
-                </div>
+          return (
+            <div key={slotId} className="px-3 py-2">
+              <div className="font-medium text-gray-800 text-sm mb-1">{timeRange}</div>
+              <div className="space-y-0.5">
+                {slotAssignments
+                  .sort((a, b) => a.courtId - b.courtId)
+                  .slice(0, config.courtCount)
+                  .map((assignment) => (
+                    <div key={`${assignment.matchId}-${assignment.courtId}`} className="text-sm text-gray-600">
+                      {formatMatchLine(assignment)}
+                    </div>
+                  ))}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
     );
   } else {
@@ -83,34 +81,33 @@ export function ScheduleView({ schedule, view, config }: ScheduleViewProps) {
     const courts = Array.from(byCourt.keys()).sort((a, b) => a - b);
 
     return (
-      <div className="bg-white rounded shadow-sm overflow-hidden">
-        <div className="divide-y divide-gray-200">
-          {courts.map((courtId) => {
-            const courtAssignments = byCourt.get(courtId)!.sort((a, b) => a.slotId - b.slotId);
+      <div className="divide-y divide-gray-100">
+        {courts.map((courtId) => {
+          const courtAssignments = byCourt.get(courtId)!.sort((a, b) => a.slotId - b.slotId);
 
-            return (
-              <div key={courtId} className="p-2">
-                <h3 className="font-semibold text-base mb-1">Court {courtId}</h3>
-                <div className="space-y-1">
-                  {courtAssignments.map((assignment) => {
-                    const timeRange = formatSlotRange(
-                      assignment.slotId,
-                      assignment.durationSlots,
-                      config.dayStart,
-                      config.intervalMinutes
-                    );
-                    return (
-                      <div key={`${assignment.matchId}-${assignment.slotId}`} className="text-sm">
-                        <div className="font-medium text-gray-900">{timeRange}</div>
-                        <div className="text-gray-700">{formatMatchLine(assignment)}</div>
-                      </div>
-                    );
-                  })}
-                </div>
+          return (
+            <div key={courtId} className="px-3 py-2">
+              <div className="font-medium text-gray-800 text-sm mb-1">Court {courtId}</div>
+              <div className="space-y-1">
+                {courtAssignments.map((assignment) => {
+                  const timeRange = formatSlotRange(
+                    assignment.slotId,
+                    assignment.durationSlots,
+                    config.dayStart,
+                    config.intervalMinutes
+                  );
+                  return (
+                    <div key={`${assignment.matchId}-${assignment.slotId}`} className="text-sm">
+                      <span className="text-gray-800">{timeRange}</span>
+                      <span className="text-gray-400 mx-1">·</span>
+                      <span className="text-gray-600">{formatMatchLine(assignment)}</span>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
     );
   }

@@ -14,29 +14,29 @@ export function ScheduleActions({
   hasSchedule,
 }: ScheduleActionsProps) {
   return (
-    <div className="flex gap-1">
+    <div className="flex items-center gap-2">
       <button
         onClick={onGenerate}
         disabled={generating}
-        className={`px-3 py-1.5 rounded-sm text-sm font-medium ${
+        className={`px-2 py-1 text-xs ${
           generating
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-green-600 hover:bg-green-700'
-        } text-white`}
+            ? 'text-gray-400 cursor-not-allowed'
+            : 'text-gray-600 hover:text-gray-800'
+        }`}
       >
-        {generating ? 'Generating...' : 'Generate Schedule'}
+        {generating ? 'Generating...' : 'Generate'}
       </button>
       {hasSchedule && (
         <button
           onClick={onReoptimize}
           disabled={reoptimizing}
-          className={`px-3 py-1.5 rounded-sm text-sm font-medium ${
+          className={`px-2 py-1 text-xs ${
             reoptimizing
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700'
-          } text-white`}
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-gray-600 hover:text-gray-800'
+          }`}
         >
-          {reoptimizing ? 'Reoptimizing...' : 'Reoptimize Schedule'}
+          {reoptimizing ? 'Reoptimizing...' : 'Reoptimize'}
         </button>
       )}
     </div>

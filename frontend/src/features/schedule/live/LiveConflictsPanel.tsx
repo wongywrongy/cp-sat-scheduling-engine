@@ -76,62 +76,38 @@ export function LiveConflictsPanel({
   }, [matchCount, prevMatchCount]);
 
   return (
-    <div className="bg-white rounded border border-gray-200 p-2 h-full">
-      {/* Compact top section: status + counts */}
-      <div className={`mb-2 pb-2 border-b border-gray-100 transition-all duration-300 ${matchCountFlash ? 'bg-blue-50 -mx-2 px-2 -mt-2 pt-2 rounded-t' : ''}`}>
-        {/* Status row */}
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            {status === 'solving' && (
-              <>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                </span>
-                <span className="text-sm text-blue-600 font-medium">Optimizing...</span>
-              </>
-            )}
-            {status === 'complete' && (
-              <>
-                <span className="w-2 h-2 bg-green-500 rounded-full" />
-                <span className="text-sm text-green-600 font-medium">Complete</span>
-              </>
-            )}
-            {status === 'error' && (
-              <>
-                <span className="w-2 h-2 bg-red-500 rounded-full" />
-                <span className="text-sm text-red-600 font-medium">Error</span>
-              </>
-            )}
-          </div>
-          <div className={`text-right transition-colors duration-300 ${matchCountFlash ? 'text-blue-600' : 'text-gray-700'}`}>
-            <span className="font-bold"><AnimatedCounter value={matchCount} /></span>
-            <span className="text-xs text-gray-500">/{totalMatches}</span>
-          </div>
+    <div className="h-full">
+      {/* Match count summary */}
+      <div className={`mb-3 pb-2 border-b border-gray-100 transition-all duration-300 ${matchCountFlash ? 'bg-gray-50 -mx-2 px-2 -mt-2 pt-2' : ''}`}>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Matches</span>
+          <span className={`font-medium transition-colors duration-300 ${matchCountFlash ? 'text-gray-900' : 'text-gray-700'}`}>
+            <AnimatedCounter value={matchCount} />
+            <span className="text-gray-400">/{totalMatches}</span>
+          </span>
         </div>
+        {unscheduledCount > 0 && (
+          <div className="text-xs text-gray-500 mt-1">
+            {unscheduledCount} unscheduled
+          </div>
+        )}
+      </div>
 
-        {/* Inline badges row */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {unscheduledCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              {unscheduledCount} unscheduled
-            </span>
-          )}
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full transition-all duration-300 ${hardCount === 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${hardCount === 0 ? 'bg-green-500' : 'bg-red-500'}`} />
-            {hardCount} hard
-          </span>
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full transition-all duration-300 ${softCount === 0 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${softCount === 0 ? 'bg-green-500' : 'bg-yellow-500'}`} />
-            {softCount} soft
-          </span>
+      {/* Violations summary */}
+      <div className="mb-3 pb-2 border-b border-gray-100">
+        <div className="flex items-center justify-between text-sm mb-1">
+          <span className="text-gray-600">Hard violations</span>
+          <span className={`font-medium ${hardCount === 0 ? 'text-gray-400' : 'text-gray-900'}`}>{hardCount}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Soft violations</span>
+          <span className={`font-medium ${softCount === 0 ? 'text-gray-400' : 'text-gray-900'}`}>{softCount}</span>
         </div>
       </div>
 
       {/* Violations by type - simple stats */}
       <div className="space-y-1">
-        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Stats</h4>
+        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">By Type</h4>
         {allTypes.map((type) => {
           const count = byType[type] || 0;
           const config = TYPE_CONFIG[type];
@@ -139,7 +115,7 @@ export function LiveConflictsPanel({
           return (
             <div
               key={type}
-              className="flex items-center justify-between py-1 text-sm"
+              className="flex items-center justify-between py-0.5 text-sm"
             >
               <span className="text-gray-600">{config.label}</span>
               <span className={`font-medium ${count > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
@@ -149,21 +125,6 @@ export function LiveConflictsPanel({
           );
         })}
       </div>
-
-
-      {/* CSS for animations */}
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
-        .scale-102 {
-          transform: scale(1.02);
-        }
-      `}</style>
     </div>
   );
 }

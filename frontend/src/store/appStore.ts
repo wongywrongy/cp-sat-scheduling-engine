@@ -12,7 +12,18 @@ import type {
   ScheduleDTO,
   MatchStateDTO,
   LiveScheduleState,
+  ScheduleAssignment,
+  SolverProgressEvent,
 } from '../api/dto';
+
+// Stats from schedule generation (persists across page navigation)
+interface ScheduleGenerationStats {
+  elapsed: number;
+  solutionCount?: number;
+  objectiveScore?: number;
+  bestBound?: number;
+  assignments: ScheduleAssignment[];
+}
 
 interface AppState {
   // Tournament Configuration
@@ -42,6 +53,23 @@ interface AppState {
   // Schedule (not persisted - generated fresh each time)
   schedule: ScheduleDTO | null;
   setSchedule: (schedule: ScheduleDTO | null) => void;
+
+  // Schedule generation stats (persists across page navigation, not to localStorage)
+  scheduleStats: ScheduleGenerationStats | null;
+  setScheduleStats: (stats: ScheduleGenerationStats | null) => void;
+
+  // Generation state (persists across page navigation for tab switching)
+  isGenerating: boolean;
+  generationProgress: SolverProgressEvent | null;
+  generationError: string | null;
+  setIsGenerating: (generating: boolean) => void;
+  setGenerationProgress: (progress: SolverProgressEvent | null) => void;
+  setGenerationError: (error: string | null) => void;
+
+  // Schedule lock state (prevent accidental edits after generation)
+  isScheduleLocked: boolean;
+  lockSchedule: () => void;
+  unlockSchedule: () => void;
 
   // Live Tracking (Match States) - NOT persisted to localStorage, managed via file
   matchStates: Record<string, MatchStateDTO>;
@@ -77,11 +105,16 @@ export const useAppStore = create<AppState>()(
       players: [],
       matches: [],
       schedule: null,
+      scheduleStats: null,
+      isGenerating: false,
+      generationProgress: null,
+      generationError: null,
+      isScheduleLocked: false,
       matchStates: {},
       liveState: null,
 
       // Config actions
-      setConfig: (config) => set({ config, schedule: null }), // Invalidate schedule when config changes
+      setConfig: (config) => set({ config, schedule: null, scheduleStats: null }), // Invalidate schedule when config changes
 
       // Group actions
       addGroup: (group) =>
@@ -122,7 +155,12 @@ export const useAppStore = create<AppState>()(
 
       // Match actions
       addMatch: (match) =>
-        set((state) => ({ matches: [...state.matches, match], schedule: null })), // Invalidate schedule
+        set((state) => {
+          // Auto-assign match number if not provided
+          const maxNumber = state.matches.reduce((max, m) => Math.max(max, m.matchNumber ?? 0), 0);
+          const newMatch = match.matchNumber ? match : { ...match, matchNumber: maxNumber + 1 };
+          return { matches: [...state.matches, newMatch], schedule: null };
+        }), // Invalidate schedule
       updateMatch: (id, updates) =>
         set((state) => ({
           matches: state.matches.map((m) =>
@@ -135,10 +173,34 @@ export const useAppStore = create<AppState>()(
           matches: state.matches.filter((m) => m.id !== id),
           schedule: null, // Invalidate schedule
         })),
-      importMatches: (matches) => set({ matches, schedule: null }), // Invalidate schedule
+      importMatches: (matches) => {
+        // Auto-assign match numbers to all imported matches
+        const numberedMatches = matches.map((m, index) => ({
+          ...m,
+          matchNumber: m.matchNumber ?? index + 1,
+        }));
+        set({ matches: numberedMatches, schedule: null }); // Invalidate schedule
+      },
 
       // Schedule actions
-      setSchedule: (schedule) => set({ schedule }),
+      setSchedule: (schedule) => set({
+        schedule,
+        isScheduleLocked: schedule !== null, // Auto-lock when schedule is set
+      }),
+      setScheduleStats: (scheduleStats) => set({ scheduleStats }),
+
+      // Generation state actions
+      setIsGenerating: (isGenerating) => set({ isGenerating }),
+      setGenerationProgress: (generationProgress) => set({ generationProgress }),
+      setGenerationError: (generationError) => set({ generationError }),
+
+      // Lock actions
+      lockSchedule: () => set({ isScheduleLocked: true }),
+      unlockSchedule: () => set({
+        isScheduleLocked: false,
+        schedule: null,
+        scheduleStats: null,
+      }),
 
       // Live Tracking (Match States) actions
       setMatchStates: (matchStates) => {

@@ -16,15 +16,23 @@ export function getCurrentTime(): string {
 
 /**
  * Calculate current slot based on tournament config and current time
+ * Handles overnight schedules (e.g., 10pm to 6am)
  */
 export function getCurrentSlot(config: TournamentConfig | null): number {
   if (!config) return 0;
 
   const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  let currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  const [startHour, startMin] = config.dayStart.split(':').map(Number);
-  const startMinutes = startHour * 60 + startMin;
+  const startMinutes = timeToMinutes(config.dayStart);
+  const endMinutes = timeToMinutes(config.dayEnd);
+  const isOvernight = endMinutes <= startMinutes;
+
+  // For overnight schedules, if current time is before start (e.g., 2am when start is 10pm),
+  // add 24 hours to treat it as part of the overnight period
+  if (isOvernight && currentMinutes < startMinutes) {
+    currentMinutes += 24 * 60;
+  }
 
   const elapsedMinutes = currentMinutes - startMinutes;
   const slot = Math.floor(elapsedMinutes / config.intervalMinutes);
@@ -34,14 +42,16 @@ export function getCurrentSlot(config: TournamentConfig | null): number {
 
 /**
  * Format slot ID to HH:mm time
+ * Handles overnight schedules by wrapping hours past midnight
  */
 export function formatSlotTime(slotId: number, config: TournamentConfig): string {
-  const [startHour, startMin] = config.dayStart.split(':').map(Number);
-  const startMinutes = startHour * 60 + startMin;
+  const startMinutes = timeToMinutes(config.dayStart);
 
   const slotMinutes = startMinutes + (slotId * config.intervalMinutes);
-  const hours = Math.floor(slotMinutes / 60);
-  const minutes = slotMinutes % 60;
+  // Wrap around midnight (1440 minutes = 24 hours)
+  const normalizedMinutes = slotMinutes % (24 * 60);
+  const hours = Math.floor(normalizedMinutes / 60);
+  const minutes = normalizedMinutes % 60;
 
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
@@ -120,6 +130,44 @@ export function getRecentlyFinished(
 export function timeToMinutes(time: string): number {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
+}
+
+/**
+ * Check if a schedule spans overnight (end time is before start time)
+ */
+export function isOvernightSchedule(config: TournamentConfig): boolean {
+  const startMinutes = timeToMinutes(config.dayStart);
+  const endMinutes = timeToMinutes(config.dayEnd);
+  return endMinutes <= startMinutes;
+}
+
+/**
+ * Calculate total slots for a tournament, handling overnight schedules
+ */
+export function calculateTotalSlots(config: TournamentConfig): number {
+  const startMinutes = timeToMinutes(config.dayStart);
+  let endMinutes = timeToMinutes(config.dayEnd);
+
+  // If end time is before/equal to start time, it's overnight (add 24 hours)
+  if (endMinutes <= startMinutes) {
+    endMinutes += 24 * 60;
+  }
+
+  return Math.ceil((endMinutes - startMinutes) / config.intervalMinutes);
+}
+
+/**
+ * Get adjusted end minutes for overnight schedules
+ */
+export function getAdjustedEndMinutes(config: TournamentConfig): number {
+  const startMinutes = timeToMinutes(config.dayStart);
+  let endMinutes = timeToMinutes(config.dayEnd);
+
+  if (endMinutes <= startMinutes) {
+    endMinutes += 24 * 60;
+  }
+
+  return endMinutes;
 }
 
 /**

@@ -63,7 +63,9 @@ def to_core_request(api_request: APIScheduleRequest) -> ScheduleRequest:
         max_game_spacing_slots=api_request.config.maxGameSpacingSlots,
         game_proximity_penalty=api_request.config.gameProximityPenalty,
         enable_compact_schedule=api_request.config.enableCompactSchedule,
+        compact_schedule_mode=api_request.config.compactScheduleMode,
         compact_schedule_penalty=api_request.config.compactSchedulePenalty,
+        target_finish_slot=api_request.config.targetFinishSlot,
         allow_player_overlap=api_request.config.allowPlayerOverlap,
         player_overlap_penalty=api_request.config.playerOverlapPenalty,
     )

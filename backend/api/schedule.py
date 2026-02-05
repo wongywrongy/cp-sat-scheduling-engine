@@ -194,11 +194,21 @@ async def generate_schedule_stream(request: GenerateScheduleRequest):
 
 def _convert_to_schedule_config(config: TournamentConfig) -> ScheduleConfig:
     """Convert TournamentConfig to scheduler_core ScheduleConfig."""
-    # Calculate total slots
+    # Calculate total slots (handle overnight schedules)
     start_minutes = _time_to_minutes(config.dayStart)
     end_minutes = _time_to_minutes(config.dayEnd)
+
+    print(f"DEBUG: dayStart={config.dayStart}, dayEnd={config.dayEnd}")
+    print(f"DEBUG: start_minutes={start_minutes}, end_minutes={end_minutes}")
+
+    # If end time is before start time, it's an overnight schedule (crosses midnight)
+    if end_minutes <= start_minutes:
+        print(f"DEBUG: Overnight schedule detected, adding 24 hours")
+        end_minutes += 24 * 60  # Add 24 hours
+
     total_minutes = end_minutes - start_minutes
     total_slots = total_minutes // config.intervalMinutes
+    print(f"DEBUG: total_minutes={total_minutes}, total_slots={total_slots}, interval={config.intervalMinutes}")
 
     # Calculate default rest slots
     default_rest_slots = config.defaultRestMinutes // config.intervalMinutes
@@ -215,8 +225,22 @@ def _convert_to_schedule_config(config: TournamentConfig) -> ScheduleConfig:
         disruption_penalty=5.0,
         late_finish_penalty=1.0,
         court_change_penalty=2.0,
+        # Court utilization
         enable_court_utilization=config.enableCourtUtilization if config.enableCourtUtilization is not None else True,
         court_utilization_penalty=config.courtUtilizationPenalty if config.courtUtilizationPenalty is not None else 50.0,
+        # Game proximity
+        enable_game_proximity=config.enableGameProximity if config.enableGameProximity is not None else False,
+        min_game_spacing_slots=config.minGameSpacingSlots,
+        max_game_spacing_slots=config.maxGameSpacingSlots,
+        game_proximity_penalty=config.gameProximityPenalty if config.gameProximityPenalty is not None else 5.0,
+        # Compact schedule
+        enable_compact_schedule=config.enableCompactSchedule if config.enableCompactSchedule is not None else False,
+        compact_schedule_mode=config.compactScheduleMode if config.compactScheduleMode is not None else "minimize_makespan",
+        compact_schedule_penalty=config.compactSchedulePenalty if config.compactSchedulePenalty is not None else 100.0,
+        target_finish_slot=config.targetFinishSlot,
+        # Player overlap
+        allow_player_overlap=config.allowPlayerOverlap if config.allowPlayerOverlap is not None else False,
+        player_overlap_penalty=config.playerOverlapPenalty if config.playerOverlapPenalty is not None else 50.0,
     )
 
 
@@ -336,7 +360,16 @@ def _time_to_minutes(time: str) -> int:
 
 
 def _time_to_slot(time: str, day_start: str, interval_minutes: int) -> int:
-    """Convert time to slot number relative to day start."""
+    """Convert time to slot number relative to day start.
+
+    Handles overnight schedules where times after midnight are still
+    part of the schedule (e.g., start 22:00, availability until 02:00).
+    """
     start_minutes = _time_to_minutes(day_start)
     time_minutes = _time_to_minutes(time)
+
+    # If time is before day_start, it's the next day (overnight schedule)
+    if time_minutes < start_minutes:
+        time_minutes += 24 * 60  # Add 24 hours
+
     return (time_minutes - start_minutes) // interval_minutes

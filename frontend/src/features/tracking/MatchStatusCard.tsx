@@ -1,9 +1,9 @@
 /**
- * Match Status Card Component
- * Displays individual match details with status and action buttons
+ * Match Status Card Component - Compact version
+ * Displays match details with status and action buttons
  */
 import { useState } from 'react';
-import type { ScheduleAssignment, MatchDTO, MatchStateDTO, PlayerDTO } from '../../api/dto';
+import type { ScheduleAssignment, MatchDTO, MatchStateDTO } from '../../api/dto';
 import { formatSlotRange, getStatusColor } from '../../utils/timeUtils';
 import { MatchScoreDialog } from './MatchScoreDialog';
 import { usePlayerNames } from '../../hooks/usePlayerNames';
@@ -14,6 +14,7 @@ interface MatchStatusCardProps {
   matchState: MatchStateDTO | undefined;
   config: any;
   onUpdateStatus: (matchId: string, status: MatchStateDTO['status'], additionalData?: Partial<MatchStateDTO>) => Promise<void>;
+  dimmed?: boolean;
 }
 
 export function MatchStatusCard({
@@ -21,7 +22,8 @@ export function MatchStatusCard({
   match,
   matchState,
   config,
-  onUpdateStatus
+  onUpdateStatus,
+  dimmed = false,
 }: MatchStatusCardProps) {
   const [showScoreDialog, setShowScoreDialog] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -30,27 +32,19 @@ export function MatchStatusCard({
   if (!match) return null;
 
   const status = matchState?.status || 'scheduled';
-
-  // Get player names using the hook
   const sideANames = getPlayerNames(match.sideA || []).join(' & ');
   const sideBNames = getPlayerNames(match.sideB || []).join(' & ');
 
   const handleStatusChange = async (newStatus: MatchStateDTO['status']) => {
     if (updating) return;
-
     setUpdating(true);
     try {
       await onUpdateStatus(assignment.matchId, newStatus);
     } catch (error) {
       console.error('Failed to update status:', error);
-      alert('Failed to update match status. Please try again.');
     } finally {
       setUpdating(false);
     }
-  };
-
-  const handleFinishClick = () => {
-    setShowScoreDialog(true);
   };
 
   const handleScoreSubmit = async (score: { sideA: number; sideB: number }, notes: string) => {
@@ -60,7 +54,6 @@ export function MatchStatusCard({
       setShowScoreDialog(false);
     } catch (error) {
       console.error('Failed to submit score:', error);
-      alert('Failed to submit score. Please try again.');
     } finally {
       setUpdating(false);
     }
@@ -68,103 +61,67 @@ export function MatchStatusCard({
 
   return (
     <>
-      <div className="bg-white rounded shadow-sm p-2 hover:shadow transition-shadow">
-        {/* Header with Event Rank and Status */}
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <div className="text-base font-bold text-gray-900">
-              {match.eventRank || 'Match'}
-            </div>
-            <div className="text-xs text-gray-500">
-              Court {assignment.courtId} • {config && formatSlotRange(assignment.slotId, assignment.durationSlots, config)}
-            </div>
+      <div className={`bg-white rounded border p-1.5 transition-colors text-xs ${
+        dimmed
+          ? 'border-gray-100 opacity-50'
+          : 'border-gray-200 hover:border-gray-300'
+      }`}>
+        {/* Row 1: Match label + Court/Time + Action */}
+        <div className="flex items-center gap-2">
+          <div className="font-semibold text-gray-900 w-14 flex-shrink-0 truncate">
+            {match.eventRank || `M${match.matchNumber || '?'}`}
           </div>
-
-          <span className={`px-2 py-0.5 rounded-sm text-xs font-semibold ${getStatusColor(status)}`}>
-            {status.toUpperCase()}
-          </span>
+          <div className="text-gray-500 flex-shrink-0">
+            C{assignment.courtId} {config && formatSlotRange(assignment.slotId, assignment.durationSlots, config)}
+          </div>
+          <div className="flex-1" />
+          {/* Score if finished */}
+          {matchState?.score && (
+            <div className="font-semibold text-gray-900 flex-shrink-0">
+              {matchState.score.sideA}-{matchState.score.sideB}
+            </div>
+          )}
+          {/* Action button */}
+          <div className="flex-shrink-0">
+            {status === 'scheduled' && (
+              <button
+                onClick={() => handleStatusChange('called')}
+                disabled={updating || dimmed}
+                className="px-2 py-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                Call
+              </button>
+            )}
+            {status === 'called' && (
+              <button
+                onClick={() => handleStatusChange('started')}
+                disabled={updating}
+                className="px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+              >
+                Start
+              </button>
+            )}
+            {status === 'started' && (
+              <button
+                onClick={() => setShowScoreDialog(true)}
+                disabled={updating}
+                className="px-2 py-0.5 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-gray-400"
+              >
+                Finish
+              </button>
+            )}
+            {status === 'finished' && (
+              <span className="text-green-600 font-medium">Done</span>
+            )}
+          </div>
         </div>
 
-        {/* Match Details */}
-        <div className="space-y-1 mb-2 text-sm">
-          <div className="flex items-center">
-            <span className="font-medium text-gray-700 w-14">Side A:</span>
-            <span className="text-gray-900">{sideANames || 'TBD'}</span>
-          </div>
-          <div className="flex items-center">
-            <span className="font-medium text-gray-700 w-14">Side B:</span>
-            <span className="text-gray-900">{sideBNames || 'TBD'}</span>
-          </div>
-        </div>
-
-        {/* Times and Score (if available) */}
-        {(matchState?.actualStartTime || matchState?.actualEndTime || matchState?.score) && (
-          <div className="border-t border-gray-200 pt-2 mb-2 space-y-0.5 text-xs">
-            {matchState.actualStartTime && (
-              <div className="text-xs text-gray-600">
-                Started: {matchState.actualStartTime}
-              </div>
-            )}
-            {matchState.actualEndTime && (
-              <div className="text-xs text-gray-600">
-                Finished: {matchState.actualEndTime}
-              </div>
-            )}
-            {matchState.score && (
-              <div className="text-sm font-semibold text-gray-900 mt-2">
-                Score: {matchState.score.sideA} - {matchState.score.sideB}
-              </div>
-            )}
-            {matchState.notes && (
-              <div className="text-xs text-gray-600 italic mt-1">
-                Notes: {matchState.notes}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-1">
-          {status === 'scheduled' && (
-            <button
-              onClick={() => handleStatusChange('called')}
-              disabled={updating}
-              className="flex-1 px-2 py-1 bg-blue-600 text-white rounded-sm hover:bg-blue-700 disabled:bg-gray-400 text-xs font-medium"
-            >
-              {updating ? 'Updating...' : 'Call Match'}
-            </button>
-          )}
-
-          {status === 'called' && (
-            <button
-              onClick={() => handleStatusChange('started')}
-              disabled={updating}
-              className="flex-1 px-2 py-1 bg-green-600 text-white rounded-sm hover:bg-green-700 disabled:bg-gray-400 text-xs font-medium"
-            >
-              {updating ? 'Updating...' : 'Start Match'}
-            </button>
-          )}
-
-          {status === 'started' && (
-            <button
-              onClick={handleFinishClick}
-              disabled={updating}
-              className="flex-1 px-2 py-1 bg-purple-600 text-white rounded-sm hover:bg-purple-700 disabled:bg-gray-400 text-xs font-medium"
-            >
-              Finish Match
-            </button>
-          )}
-
-          {status === 'finished' && (
-            <div className="flex-1 px-2 py-1 bg-gray-100 text-gray-600 rounded-sm text-center text-xs font-medium flex items-center justify-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              Complete
-            </div>
-          )}
+        {/* Row 2: Players */}
+        <div className="text-gray-600 truncate mt-0.5">
+          {sideANames || '?'} vs {sideBNames || '?'}
         </div>
       </div>
 
-      {/* Score Dialog */}
       {showScoreDialog && (
         <MatchScoreDialog
           matchName={match.eventRank || 'Match'}

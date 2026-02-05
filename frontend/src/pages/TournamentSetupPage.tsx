@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { useTournament } from '../hooks/useTournament';
+import { useLockGuard } from '../hooks/useLockGuard';
 import { TournamentConfigForm } from '../features/tournaments/TournamentConfigForm';
 import { TournamentFileManagement } from '../features/tournaments/TournamentFileManagement';
+import { ScheduleLockIndicator } from '../components/status/ScheduleLockIndicator';
 import type { TournamentConfig } from '../api/dto';
 
 export function TournamentSetupPage() {
   const { config, loading, error, updateConfig } = useTournament();
+  const { isLocked, confirmUnlock } = useLockGuard();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleSave = async (newConfig: TournamentConfig) => {
+    if (!confirmUnlock()) return;
     try {
       setSaving(true);
       setSaveError(null);
@@ -47,6 +51,11 @@ export function TournamentSetupPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold mb-3">Tournament Setup</h2>
+
+      {/* Lock indicator */}
+      {isLocked && (
+        <ScheduleLockIndicator showUnlockHint className="mb-3" />
+      )}
 
       {isNewTournament && (
         <div className="mb-2 p-2 bg-blue-100 border border-blue-400 text-blue-700 rounded-sm text-sm">

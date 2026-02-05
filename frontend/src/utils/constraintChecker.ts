@@ -47,6 +47,19 @@ function getMatchPlayerIds(match: MatchDTO): string[] {
 }
 
 /**
+ * Get match display label (M1, M2, etc. or eventRank)
+ */
+function getMatchLabel(match: MatchDTO): string {
+  if (match.matchNumber) {
+    return `M${match.matchNumber}`;
+  }
+  if (match.eventRank) {
+    return match.eventRank;
+  }
+  return match.id.slice(0, 6);
+}
+
+/**
  * Check for player overlap violations (hard constraint)
  */
 function checkPlayerOverlap(
@@ -85,12 +98,16 @@ function checkPlayerOverlap(
 
     for (let i = 0; i < slots.length - 1; i++) {
       if (slots[i].end > slots[i + 1].start) {
+        const match1 = matchMap.get(slots[i].matchId);
+        const match2 = matchMap.get(slots[i + 1].matchId);
+        const label1 = match1 ? getMatchLabel(match1) : slots[i].matchId.slice(0, 6);
+        const label2 = match2 ? getMatchLabel(match2) : slots[i + 1].matchId.slice(0, 6);
         violations.push({
           type: 'overlap',
           severity: 'hard',
           playerIds: [playerId],
           matchIds: [slots[i].matchId, slots[i + 1].matchId],
-          description: `Player scheduled in overlapping matches`,
+          description: `Player overlap in ${label1} and ${label2}`,
         });
       }
     }
@@ -149,12 +166,16 @@ function checkRestViolations(
     for (let i = 0; i < schedule.length - 1; i++) {
       const gap = schedule[i + 1].start - schedule[i].end;
       if (gap < restSlots && gap >= 0) {
+        const match1 = matchMap.get(schedule[i].matchId);
+        const match2 = matchMap.get(schedule[i + 1].matchId);
+        const label1 = match1 ? getMatchLabel(match1) : schedule[i].matchId.slice(0, 6);
+        const label2 = match2 ? getMatchLabel(match2) : schedule[i + 1].matchId.slice(0, 6);
         violations.push({
           type: 'rest',
           severity: 'soft',
           playerIds: [playerId],
           matchIds: [schedule[i].matchId, schedule[i + 1].matchId],
-          description: `Insufficient rest time (${gap} slots, needs ${restSlots})`,
+          description: `Rest violation: ${label1} to ${label2} (${gap}/${restSlots} slots)`,
         });
       }
     }
@@ -192,12 +213,17 @@ function checkCourtCapacity(
   // Check for multiple matches on same court-slot
   for (const [key, matchIds] of courtSlots) {
     if (matchIds.length > 1) {
+      const labels = matchIds.map(id => {
+        const match = matchMap.get(id);
+        return match ? getMatchLabel(match) : id.slice(0, 6);
+      });
+      const [courtId, slotId] = key.split('-');
       violations.push({
         type: 'court_capacity',
         severity: 'hard',
         playerIds: [],
         matchIds,
-        description: `Multiple matches on same court at same time`,
+        description: `Court ${courtId} conflict: ${labels.join(', ')} at slot ${slotId}`,
       });
     }
   }

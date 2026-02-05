@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSchedule } from '../hooks/useSchedule';
 import { useTournament } from '../hooks/useTournament';
@@ -6,12 +5,12 @@ import { useAppStore } from '../store/appStore';
 import { ScheduleView } from '../features/schedule/ScheduleView';
 import { ScheduleActions } from '../features/schedule/ScheduleActions';
 import { LiveScheduleGrid } from '../features/schedule/live';
-import type { ScheduleAssignment } from '../api/dto';
 
 export function SchedulePage() {
   const { config, loading: configLoading, error: configError } = useTournament();
   const players = useAppStore((state) => state.players);
   const matches = useAppStore((state) => state.matches);
+  const scheduleStats = useAppStore((state) => state.scheduleStats);
   const {
     schedule,
     loading,
@@ -23,45 +22,33 @@ export function SchedulePage() {
     generationProgress,
   } = useSchedule();
 
-  const [generating, setGenerating] = useState(false);
-  const [reoptimizing, setReoptimizing] = useState(false);
-
-  // Store final progress state to keep visualization visible after completion
-  const [finalProgress, setFinalProgress] = useState<{
-    elapsed: number;
-    solutionCount?: number;
-    objectiveScore?: number;
-    bestBound?: number;
-    assignments: ScheduleAssignment[];
-  } | null>(null);
+  // Use global loading state - persists across tab switches
+  const isOptimizing = loading;
 
   const handleGenerate = async () => {
+    // Warn if schedule already exists
+    if (schedule) {
+      const confirmed = window.confirm(
+        'WARNING: Generating a new schedule will REPLACE the current schedule!\n\n' +
+        'All existing schedule data will be lost.\n\n' +
+        'Are you sure you want to continue?'
+      );
+      if (!confirmed) return;
+    }
+
     try {
-      setGenerating(true);
-      setFinalProgress(null); // Clear previous final state
       await generateSchedule();
-    } finally {
-      setGenerating(false);
-      // Save final progress state when generation completes
-      if (generationProgress?.current_assignments) {
-        setFinalProgress({
-          elapsed: generationProgress.elapsed_ms,
-          solutionCount: generationProgress.solution_count,
-          objectiveScore: generationProgress.current_objective,
-          bestBound: generationProgress.best_bound,
-          assignments: generationProgress.current_assignments,
-        });
-      }
+    } catch (err) {
+      // Error is already set in the hook
+      console.error('Generation failed:', err);
     }
   };
 
   const handleReoptimize = async () => {
     try {
-      setReoptimizing(true);
-      setFinalProgress(null);
       await reoptimizeSchedule();
-    } finally {
-      setReoptimizing(false);
+    } catch (err) {
+      console.error('Reoptimization failed:', err);
     }
   };
 
@@ -76,15 +63,14 @@ export function SchedulePage() {
   const needsConfig = !config || (configError && configError.includes("not found"));
 
   // Determine what to show for visualization
-  const isOptimizing = loading || generating;
   const hasLiveProgress = isOptimizing && generationProgress?.current_assignments && generationProgress.current_assignments.length > 0;
 
-  // Use live progress during optimization, or final progress after completion, or schedule assignments
+  // Use live progress during optimization, or stored stats after completion, or schedule assignments
   const displayAssignments = hasLiveProgress
     ? generationProgress.current_assignments
-    : (finalProgress?.assignments || schedule?.assignments || []);
+    : (scheduleStats?.assignments || schedule?.assignments || []);
 
-  const showVisualization = config && (hasLiveProgress || finalProgress || schedule);
+  const showVisualization = config && (hasLiveProgress || scheduleStats || schedule);
 
   return (
     <div className="max-w-7xl mx-auto space-y-3">
@@ -101,6 +87,29 @@ export function SchedulePage() {
         </div>
       )}
 
+      {/* Infeasible schedule warning */}
+      {schedule?.status === 'infeasible' && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm">
+          <p className="font-medium text-red-800 mb-2">Schedule is Infeasible</p>
+          <p className="text-red-700 mb-2">The solver could not find a valid schedule with the current configuration.</p>
+          {schedule.infeasibleReasons && schedule.infeasibleReasons.length > 0 && (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-red-600 hover:text-red-800">
+                View {schedule.infeasibleReasons.length} constraint violations
+              </summary>
+              <ul className="mt-2 pl-4 space-y-1 text-red-600 text-xs max-h-48 overflow-y-auto">
+                {schedule.infeasibleReasons.map((reason, i) => (
+                  <li key={i}>{reason}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+          <p className="mt-3 text-red-700 text-xs">
+            Try: Extending tournament hours, adding more courts, or reducing player constraints.
+          </p>
+        </div>
+      )}
+
       {/* Live Schedule Grid - shown during optimization AND after completion */}
       {showVisualization && displayAssignments.length > 0 && (
         <LiveScheduleGrid
@@ -108,16 +117,16 @@ export function SchedulePage() {
             matches={matches}
             players={players}
             config={config!}
-            elapsed={hasLiveProgress ? generationProgress.elapsed_ms : (finalProgress?.elapsed || 0)}
-            solutionCount={hasLiveProgress ? generationProgress.solution_count : finalProgress?.solutionCount}
-            objectiveScore={hasLiveProgress ? generationProgress.current_objective : (finalProgress?.objectiveScore || schedule?.objectiveScore || undefined)}
-            bestBound={hasLiveProgress ? generationProgress.best_bound : finalProgress?.bestBound}
+            elapsed={hasLiveProgress ? generationProgress.elapsed_ms : (scheduleStats?.elapsed || 0)}
+            solutionCount={hasLiveProgress ? generationProgress.solution_count : scheduleStats?.solutionCount}
+            objectiveScore={hasLiveProgress ? generationProgress.current_objective : (scheduleStats?.objectiveScore || schedule?.objectiveScore || undefined)}
+            bestBound={hasLiveProgress ? generationProgress.best_bound : scheduleStats?.bestBound}
             status={isOptimizing ? 'solving' : 'complete'}
             totalMatches={matches.length}
             onGenerate={handleGenerate}
             onReoptimize={handleReoptimize}
-            generating={generating}
-            reoptimizing={reoptimizing}
+            generating={isOptimizing}
+            reoptimizing={isOptimizing}
             hasSchedule={!!schedule}
           />
       )}
@@ -130,11 +139,11 @@ export function SchedulePage() {
         </div>
       )}
 
-      {/* Schedule details section - shown after schedule is generated */}
-      {schedule && config && !isOptimizing && (
+      {/* Schedule details section - shown after schedule is generated (not if infeasible) */}
+      {schedule && schedule.status !== 'infeasible' && config && !isOptimizing && (
         <div className="bg-white rounded border border-gray-200">
           {/* Header with view toggle */}
-          <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+          <div className="px-3 py-2 border-b border-gray-200">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setView('timeslot')}
@@ -157,13 +166,6 @@ export function SchedulePage() {
                 Court View
               </button>
             </div>
-            <ScheduleActions
-              onGenerate={handleGenerate}
-              onReoptimize={handleReoptimize}
-              generating={generating}
-              reoptimizing={reoptimizing}
-              hasSchedule={!!schedule}
-            />
           </div>
 
           {/* Schedule content */}
@@ -175,8 +177,8 @@ export function SchedulePage() {
         </div>
       )}
 
-      {/* Empty state */}
-      {!schedule && !isOptimizing && !finalProgress && (
+      {/* Empty state - also show when schedule is infeasible */}
+      {(!schedule || schedule?.status === 'infeasible') && !isOptimizing && !scheduleStats && (
         <div className="flex flex-col items-center justify-center py-16 bg-white rounded border border-gray-200">
           <div className="text-gray-400 mb-3">
             <svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,8 +191,8 @@ export function SchedulePage() {
           <ScheduleActions
             onGenerate={handleGenerate}
             onReoptimize={handleReoptimize}
-            generating={generating}
-            reoptimizing={reoptimizing}
+            generating={isOptimizing}
+            reoptimizing={isOptimizing}
             hasSchedule={!!schedule}
           />
         </div>

@@ -1,6 +1,5 @@
 /**
- * Live conflicts panel showing constraint violation summary
- * Enhanced with animations during optimization
+ * Live conflicts panel showing constraint violation log
  */
 import { useEffect, useState, useRef } from 'react';
 import type { ConstraintViolation } from '../../../api/dto';
@@ -12,38 +11,6 @@ interface LiveConflictsPanelProps {
   status: 'solving' | 'complete' | 'error';
 }
 
-const TYPE_CONFIG: Record<string, { label: string }> = {
-  overlap: { label: 'Player Overlap' },
-  rest: { label: 'Rest Time' },
-  court_capacity: { label: 'Court Capacity' },
-  availability: { label: 'Availability' },
-};
-
-// Animated counter component
-function AnimatedCounter({ value, className }: { value: number; className?: string }) {
-  const [displayValue, setDisplayValue] = useState(value);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const prevValueRef = useRef(value);
-
-  useEffect(() => {
-    if (value !== prevValueRef.current) {
-      setIsAnimating(true);
-      const timeout = setTimeout(() => {
-        setDisplayValue(value);
-        setIsAnimating(false);
-      }, 150);
-      prevValueRef.current = value;
-      return () => clearTimeout(timeout);
-    }
-  }, [value]);
-
-  return (
-    <span className={`${className} transition-all duration-300 ${isAnimating ? 'scale-125 opacity-70' : ''}`}>
-      {displayValue}
-    </span>
-  );
-}
-
 export function LiveConflictsPanel({
   violations,
   matchCount,
@@ -53,17 +20,9 @@ export function LiveConflictsPanel({
   const unscheduledCount = totalMatches - matchCount;
   const [prevMatchCount, setPrevMatchCount] = useState(matchCount);
   const [matchCountFlash, setMatchCountFlash] = useState(false);
+  const logRef = useRef<HTMLDivElement>(null);
 
-  // Group violations by type
-  const byType = violations.reduce((acc, v) => {
-    acc[v.type] = (acc[v.type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const hardCount = violations.filter(v => v.severity === 'hard').length;
-  const softCount = violations.filter(v => v.severity === 'soft').length;
-
-  const allTypes = ['overlap', 'rest', 'court_capacity', 'availability'];
+  const softViolations = violations.filter(v => v.severity === 'soft');
 
   // Flash effect when match count changes
   useEffect(() => {
@@ -75,55 +34,49 @@ export function LiveConflictsPanel({
     }
   }, [matchCount, prevMatchCount]);
 
+  // Auto-scroll log when new violations appear
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [violations.length]);
+
   return (
-    <div className="h-full">
+    <div className="h-full flex flex-col">
       {/* Match count summary */}
-      <div className={`mb-3 pb-2 border-b border-gray-100 transition-all duration-300 ${matchCountFlash ? 'bg-gray-50 -mx-2 px-2 -mt-2 pt-2' : ''}`}>
+      <div className={`mb-2 pb-2 border-b border-gray-100 transition-all duration-300 ${matchCountFlash ? 'bg-gray-50 -mx-2 px-2 -mt-2 pt-2' : ''}`}>
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">Matches</span>
           <span className={`font-medium transition-colors duration-300 ${matchCountFlash ? 'text-gray-900' : 'text-gray-700'}`}>
-            <AnimatedCounter value={matchCount} />
-            <span className="text-gray-400">/{totalMatches}</span>
+            {matchCount}<span className="text-gray-400">/{totalMatches}</span>
           </span>
         </div>
         {unscheduledCount > 0 && (
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-500 mt-0.5">
             {unscheduledCount} unscheduled
           </div>
         )}
       </div>
 
-      {/* Violations summary */}
-      <div className="mb-3 pb-2 border-b border-gray-100">
-        <div className="flex items-center justify-between text-sm mb-1">
-          <span className="text-gray-600">Hard violations</span>
-          <span className={`font-medium ${hardCount === 0 ? 'text-gray-400' : 'text-gray-900'}`}>{hardCount}</span>
+      {/* Violation log */}
+      <div className="flex-1 min-h-0">
+        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+          Log {softViolations.length > 0 && <span className="text-gray-400">({softViolations.length})</span>}
+        </h4>
+        <div
+          ref={logRef}
+          className="overflow-y-auto max-h-32 text-xs space-y-1"
+        >
+          {softViolations.length === 0 ? (
+            <div className="text-gray-400 italic">No violations</div>
+          ) : (
+            softViolations.map((v, i) => (
+              <div key={i} className="text-gray-600 py-0.5 border-b border-gray-50 last:border-0">
+                {v.description}
+              </div>
+            ))
+          )}
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Soft violations</span>
-          <span className={`font-medium ${softCount === 0 ? 'text-gray-400' : 'text-gray-900'}`}>{softCount}</span>
-        </div>
-      </div>
-
-      {/* Violations by type - simple stats */}
-      <div className="space-y-1">
-        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">By Type</h4>
-        {allTypes.map((type) => {
-          const count = byType[type] || 0;
-          const config = TYPE_CONFIG[type];
-
-          return (
-            <div
-              key={type}
-              className="flex items-center justify-between py-0.5 text-sm"
-            >
-              <span className="text-gray-600">{config.label}</span>
-              <span className={`font-medium ${count > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
-                <AnimatedCounter value={count} />
-              </span>
-            </div>
-          );
-        })}
       </div>
     </div>
   );

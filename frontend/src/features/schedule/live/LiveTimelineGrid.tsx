@@ -3,6 +3,7 @@
  * Enhanced with animations during schedule generation
  */
 import { useMemo, useEffect, useState, useRef } from 'react';
+import { calculateTotalSlots, formatSlotTime } from '../../../utils/timeUtils';
 import type { ScheduleAssignment, MatchDTO, PlayerDTO, TournamentConfig } from '../../../api/dto';
 
 interface LiveTimelineGridProps {
@@ -40,12 +41,8 @@ export function LiveTimelineGrid({
   const matchMap = useMemo(() => new Map(matches.map(m => [m.id, m])), [matches]);
   const playerMap = useMemo(() => new Map(players.map(p => [p.id, p])), [players]);
 
-  // Calculate time slots
-  const totalSlots = useMemo(() => {
-    const startMinutes = timeToMinutes(config.dayStart);
-    const endMinutes = timeToMinutes(config.dayEnd);
-    return Math.floor((endMinutes - startMinutes) / config.intervalMinutes);
-  }, [config]);
+  // Calculate time slots (handles overnight schedules)
+  const totalSlots = useMemo(() => calculateTotalSlots(config), [config]);
 
   // Determine visible slot range (only show slots that have matches)
   const { minSlot, maxSlot } = useMemo(() => {
@@ -100,14 +97,8 @@ export function LiveTimelineGrid({
     return () => clearInterval(interval);
   }, [status]);
 
-  // Format slot to time
-  const slotToTime = (slot: number) => {
-    const startMinutes = timeToMinutes(config.dayStart);
-    const totalMinutes = startMinutes + slot * config.intervalMinutes;
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-  };
+  // Format slot to time (handles overnight schedules)
+  const slotToTime = (slot: number) => formatSlotTime(slot, config);
 
   // Get event type from eventRank (e.g., "MS1" -> "MS")
   const getEventType = (eventRank: string | null | undefined): string => {
@@ -346,9 +337,4 @@ export function LiveTimelineGrid({
       `}</style>
     </div>
   );
-}
-
-function timeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 60 + minutes;
 }

@@ -25,7 +25,9 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
     maxGameSpacingSlots: config.maxGameSpacingSlots ?? null,
     gameProximityPenalty: config.gameProximityPenalty ?? 5.0,
     enableCompactSchedule: config.enableCompactSchedule ?? false,
+    compactScheduleMode: config.compactScheduleMode ?? 'minimize_makespan',
     compactSchedulePenalty: config.compactSchedulePenalty ?? 100.0,
+    targetFinishSlot: config.targetFinishSlot ?? null,
     allowPlayerOverlap: config.allowPlayerOverlap ?? false,
     playerOverlapPenalty: config.playerOverlapPenalty ?? 50.0
   });
@@ -465,22 +467,80 @@ export function TournamentConfigForm({ config, onSave, saving }: TournamentConfi
                       Compact Schedule
                     </Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Minimize total schedule length. Higher = fewer gaps, earlier finish
+                      Pack matches tightly. Higher weight = stronger enforcement (may soften other constraints)
                     </p>
 
                     {formData.enableCompactSchedule && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground">0=off</span>
-                        <input
-                          type="range"
-                          value={formData.compactSchedulePenalty ?? 100}
-                          onChange={(e) => setFormData({ ...formData, compactSchedulePenalty: parseFloat(e.target.value) })}
-                          className="flex-1 h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
-                          min="0"
-                          max="200"
-                          step="10"
-                        />
-                        <span className="text-xs font-medium w-8">{formData.compactSchedulePenalty ?? 100}</span>
+                      <div className="mt-2 space-y-2">
+                        {/* Mode selector */}
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, compactScheduleMode: 'minimize_makespan' })}
+                            className={`px-2 py-1 text-xs rounded ${
+                              formData.compactScheduleMode === 'minimize_makespan'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                            }`}
+                          >
+                            Finish Early
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, compactScheduleMode: 'no_gaps' })}
+                            className={`px-2 py-1 text-xs rounded ${
+                              formData.compactScheduleMode === 'no_gaps'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                            }`}
+                          >
+                            No Gaps
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, compactScheduleMode: 'finish_by_time' })}
+                            className={`px-2 py-1 text-xs rounded ${
+                              formData.compactScheduleMode === 'finish_by_time'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                            }`}
+                          >
+                            Finish By
+                          </button>
+                        </div>
+
+                        {/* Target finish slot for finish_by_time mode */}
+                        {formData.compactScheduleMode === 'finish_by_time' && (
+                          <div>
+                            <Label className="text-xs">Target finish slot</Label>
+                            <Input
+                              type="number"
+                              value={formData.targetFinishSlot ?? ''}
+                              onChange={(e) => setFormData({
+                                ...formData,
+                                targetFinishSlot: e.target.value ? parseInt(e.target.value) : null
+                              })}
+                              min={1}
+                              placeholder="e.g., 10"
+                              className="h-8"
+                            />
+                          </div>
+                        )}
+
+                        {/* Weight slider */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground">0=off</span>
+                          <input
+                            type="range"
+                            value={formData.compactSchedulePenalty ?? 100}
+                            onChange={(e) => setFormData({ ...formData, compactSchedulePenalty: parseFloat(e.target.value) })}
+                            className="flex-1 h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
+                            min="0"
+                            max="200"
+                            step="10"
+                          />
+                          <span className="text-xs font-medium w-8">{formData.compactSchedulePenalty ?? 100}</span>
+                        </div>
                       </div>
                     )}
                   </div>

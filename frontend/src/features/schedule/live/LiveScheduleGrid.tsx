@@ -1,11 +1,11 @@
 /**
  * Main container for live schedule visualization during optimization
- * Combines metrics bar, timeline grid, and conflicts panel
+ * Combines metrics bar, timeline grid, and solver progress log
  */
 import { useMemo } from 'react';
 import { LiveMetricsBar } from './LiveMetricsBar';
 import { LiveTimelineGrid } from './LiveTimelineGrid';
-import { LiveConflictsPanel } from './LiveConflictsPanel';
+import { SolverProgressLog } from './SolverProgressLog';
 import { ScheduleActions } from '../ScheduleActions';
 import { computeConstraintViolations } from '../../../utils/constraintChecker';
 import type {
@@ -50,7 +50,7 @@ export function LiveScheduleGrid({
   reoptimizing,
   hasSchedule,
 }: LiveScheduleGridProps) {
-  // Compute violations client-side
+  // Compute constraint violations for the log
   const violations = useMemo(
     () => computeConstraintViolations(assignments, matches, players, config),
     [assignments, matches, players, config]
@@ -78,28 +78,32 @@ export function LiveScheduleGrid({
         )}
       </div>
 
-      {/* Main content: Grid + Conflicts Panel */}
-      <div className="flex">
-        {/* Timeline Grid (main area) */}
-        <div className="flex-1 min-w-0 p-3">
-          <LiveTimelineGrid
-            assignments={assignments}
-            matches={matches}
-            players={players}
-            config={config}
-            status={status}
-          />
-        </div>
+      {/* Timeline Grid (full width) */}
+      <div className="p-3">
+        <LiveTimelineGrid
+          assignments={assignments}
+          matches={matches}
+          players={players}
+          config={config}
+          status={status}
+        />
+      </div>
 
-        {/* Conflicts Panel (sidebar) */}
-        <div className="w-48 flex-shrink-0 border-l border-gray-200 p-2">
-          <LiveConflictsPanel
-            violations={violations}
-            matchCount={assignments.length}
-            totalMatches={totalMatches ?? matches.length}
-            status={status}
-          />
+      {/* Solver Progress Log (bottom) */}
+      <div className="px-3 py-2 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Log</span>
+          <span className="text-xs text-gray-400">{assignments.length}/{totalMatches ?? matches.length} matches</span>
         </div>
+        <SolverProgressLog
+          solutionCount={solutionCount}
+          objectiveScore={objectiveScore}
+          bestBound={bestBound}
+          matchCount={assignments.length}
+          totalMatches={totalMatches ?? matches.length}
+          status={status}
+          violations={violations}
+        />
       </div>
     </div>
   );

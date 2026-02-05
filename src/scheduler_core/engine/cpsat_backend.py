@@ -563,21 +563,47 @@ class CPSATScheduler:
                     continue
                 objective_terms.append(int(self.config.late_finish_penalty * 10) * self.start_slot[match_id])
 
-        # Compact schedule - minimize makespan (latest finish time)
+        # Compact schedule modes
         if self.config.enable_compact_schedule and self.config.compact_schedule_penalty > 0:
-            # Create makespan variable (maximum end slot across all matches)
-            max_possible_end = self.config.total_slots
-            makespan = self.model.NewIntVar(0, max_possible_end, "makespan")
+            mode = self.config.compact_schedule_mode
+            penalty = int(self.config.compact_schedule_penalty * 10)
 
-            # Makespan >= end_slot for all matches
-            for match_id, match in self.matches.items():
-                if match_id in self.locked_matches:
-                    continue
-                # end_slot = start_slot + duration - 1
-                self.model.Add(makespan >= self.end_slot[match_id])
+            if mode == "minimize_makespan":
+                # Minimize latest finish time
+                max_possible_end = self.config.total_slots
+                makespan = self.model.NewIntVar(0, max_possible_end, "makespan")
+                for match_id in self.matches:
+                    if match_id not in self.locked_matches:
+                        self.model.Add(makespan >= self.end_slot[match_id])
+                objective_terms.append(penalty * makespan)
 
-            # Penalize the makespan heavily to minimize it
-            objective_terms.append(int(self.config.compact_schedule_penalty * 10) * makespan)
+            elif mode == "no_gaps":
+                # Heavily penalize idle court slots - more aggressive than court utilization
+                T = self.config.total_slots
+                C = self.config.court_count
+                for s in range(T):
+                    for c in range(1, C + 1):
+                        occupying_vars = []
+                        for match_id, match in self.matches.items():
+                            d = match.duration_slots
+                            for t in range(max(0, s - d + 1), s + 1):
+                                if (match_id, t, c) in self.x:
+                                    occupying_vars.append(self.x[(match_id, t, c)])
+                        if occupying_vars:
+                            is_idle = self.model.NewBoolVar(f"idle_{s}_{c}")
+                            self.model.Add(sum(occupying_vars) == 0).OnlyEnforceIf(is_idle)
+                            self.model.Add(sum(occupying_vars) >= 1).OnlyEnforceIf(is_idle.Not())
+                            objective_terms.append(penalty * is_idle)
+
+            elif mode == "finish_by_time":
+                # Penalize matches ending after target slot
+                target = self.config.target_finish_slot
+                if target is not None:
+                    for match_id in self.matches:
+                        if match_id not in self.locked_matches:
+                            overshoot = self.model.NewIntVar(0, self.config.total_slots, f"overshoot_{match_id}")
+                            self.model.Add(overshoot >= self.end_slot[match_id] - target)
+                            objective_terms.append(penalty * overshoot)
 
         # Player overlap penalty (when soft overlap is enabled)
         if self.config.allow_player_overlap and self.config.player_overlap_penalty > 0:

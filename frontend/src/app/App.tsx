@@ -1,21 +1,36 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { TournamentSetupPage } from '../pages/TournamentSetupPage';
 import { RosterPage } from '../pages/RosterPage';
 import { MatchesPage } from '../pages/MatchesPage';
 import { SchedulePage } from '../pages/SchedulePage';
-import LiveTrackingPage from '../pages/LiveTrackingPage';
+import { MatchControlCenterPage } from '../pages/MatchControlCenterPage';
+
+function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
+  const location = useLocation();
+  const isActive = location.pathname === to || (to === '/setup' && location.pathname === '/');
+  return (
+    <Link
+      to={to}
+      className={`px-3 py-1 text-sm rounded transition-colors ${
+        isActive
+          ? 'bg-gray-100 text-gray-900 font-medium'
+          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
 
 function App() {
   const [backendHealth, setBackendHealth] = useState<'healthy' | 'unhealthy' | 'checking'>('checking');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
-  // Check backend health periodically
+
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        // Use /api proxy in dev, direct URL in production
         const healthUrl = import.meta.env.DEV ? '/api/health' : 'http://localhost:8000/health';
         const response = await fetch(healthUrl);
         setBackendHealth(response.ok ? 'healthy' : 'unhealthy');
@@ -23,90 +38,87 @@ function App() {
         setBackendHealth('unhealthy');
       }
     };
-    
+
     checkHealth();
-    const interval = setInterval(checkHealth, 30000); // Check every 30 seconds
-    
+    const interval = setInterval(checkHealth, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const healthColor = backendHealth === 'healthy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-  const healthDot = backendHealth === 'healthy' ? 'bg-green-500' : backendHealth === 'checking' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500';
+  const healthStatus = backendHealth === 'checking'
+    ? { text: 'Checking...', dot: 'bg-yellow-500 animate-pulse', bg: 'bg-yellow-50 text-yellow-700' }
+    : backendHealth === 'healthy'
+    ? { text: 'Online', dot: 'bg-green-500', bg: 'bg-green-50 text-green-700' }
+    : { text: 'Offline', dot: 'bg-red-500', bg: 'bg-red-50 text-red-700' };
 
   return (
     <ErrorBoundary>
       <BrowserRouter>
         <div className="min-h-screen bg-gray-50">
+          {/* Compact nav bar */}
           <nav className="bg-white border-b border-gray-200">
-            <div className="container mx-auto px-4">
-              <div className="flex items-center justify-between h-16">
-                <Link to="/" className="text-xl font-semibold text-gray-900 hover:text-gray-700">
-                  School Sparring Scheduler
+            <div className="flex items-center justify-center h-10 px-2 gap-1">
+              {/* Centered menu */}
+              <div className="hidden md:flex items-center gap-1">
+                <NavLink to="/setup">Setup</NavLink>
+                <NavLink to="/roster">Players</NavLink>
+                <NavLink to="/matches">Matches</NavLink>
+                <NavLink to="/schedule">Schedule</NavLink>
+                <Link
+                  to="/control"
+                  className="px-3 py-1 text-sm font-medium text-purple-700 hover:text-purple-900 hover:bg-purple-50 rounded transition-colors"
+                >
+                  Control
                 </Link>
-                <div className="flex items-center gap-4">
-                  <nav className="hidden md:flex items-center gap-4">
-                    <Link to="/setup" className="text-sm text-gray-700 hover:text-gray-900">Setup</Link>
-                    <Link to="/roster" className="text-sm text-gray-700 hover:text-gray-900">Players</Link>
-                    <Link to="/matches" className="text-sm text-gray-700 hover:text-gray-900">Matches</Link>
-                    <Link to="/schedule" className="text-sm text-gray-700 hover:text-gray-900">Schedule</Link>
-                    <Link to="/tracking" className="text-sm font-semibold text-purple-700 hover:text-purple-900">Live Tracking</Link>
-                  </nav>
-                  <button
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className="md:hidden p-2 text-gray-700 hover:text-gray-900"
-                    aria-label="Toggle menu"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {mobileMenuOpen ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                      )}
-                    </svg>
-                  </button>
-                  <span className={`hidden sm:inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded ${healthColor}`}>
-                    <span className={`w-2 h-2 rounded-full ${healthDot}`} />
-                    Backend: {backendHealth === 'checking' ? 'Checking...' : backendHealth.charAt(0).toUpperCase()}
-                  </span>
-                  {backendHealth === 'unhealthy' && (
-                    <div className="hidden sm:block ml-2">
-                      <button
-                        onClick={() => window.location.reload()}
-                        className="text-xs text-blue-600 hover:text-blue-800 underline"
-                      >
-                        Retry Connection
-                      </button>
-                    </div>
+              </div>
+
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-1.5 text-gray-600 hover:text-gray-900"
+                aria-label="Toggle menu"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   )}
+                </svg>
+              </button>
+
+              {/* Backend status - positioned right */}
+              <div className="absolute right-2">
+                <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded ${healthStatus.bg}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${healthStatus.dot}`} />
+                  {healthStatus.text}
+                </span>
+              </div>
+            </div>
+
+            {/* Mobile menu */}
+            {mobileMenuOpen && (
+              <div className="md:hidden py-2 border-t border-gray-200">
+                <div className="flex flex-col gap-1 px-2">
+                  <Link to="/setup" className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Setup</Link>
+                  <Link to="/roster" className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Players</Link>
+                  <Link to="/matches" className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Matches</Link>
+                  <Link to="/schedule" className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Schedule</Link>
+                  <Link to="/control" className="px-3 py-1.5 text-sm font-medium text-purple-700 hover:bg-purple-50 rounded" onClick={() => setMobileMenuOpen(false)}>Control</Link>
                 </div>
               </div>
-              {mobileMenuOpen && (
-                <div className="md:hidden py-4 border-t border-gray-200">
-                  <div className="flex flex-col gap-2">
-                    <Link to="/setup" className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Setup</Link>
-                    <Link to="/roster" className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Players</Link>
-                    <Link to="/matches" className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Matches</Link>
-                    <Link to="/schedule" className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded" onClick={() => setMobileMenuOpen(false)}>Schedule</Link>
-                    <Link to="/tracking" className="px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50 rounded" onClick={() => setMobileMenuOpen(false)}>Live Tracking</Link>
-                    <div className="px-4 py-2 border-t border-gray-200 mt-2">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded ${healthColor}`}>
-                        <span className={`w-2 h-2 rounded-full ${healthDot}`} />
-                        Backend: {backendHealth === 'checking' ? 'Checking...' : backendHealth.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
           </nav>
-          <main className="container mx-auto px-4 py-4">
+
+          <main className="px-2 py-2">
             <Routes>
               <Route path="/" element={<TournamentSetupPage />} />
               <Route path="/setup" element={<TournamentSetupPage />} />
               <Route path="/roster" element={<RosterPage />} />
               <Route path="/matches" element={<MatchesPage />} />
               <Route path="/schedule" element={<SchedulePage />} />
-              <Route path="/tracking" element={<LiveTrackingPage />} />
+              <Route path="/control" element={<MatchControlCenterPage />} />
+              <Route path="/tracking" element={<Navigate to="/control" replace />} />
+              <Route path="/live-ops" element={<Navigate to="/control" replace />} />
             </Routes>
           </main>
         </div>

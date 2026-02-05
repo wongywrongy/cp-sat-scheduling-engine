@@ -61,10 +61,12 @@ class ApiClient {
 
   /**
    * Generate schedule with progress updates via Server-Sent Events
+   * @param abortSignal Optional AbortSignal to cancel the request
    */
   async generateScheduleWithProgress(
     request: GenerateScheduleRequest,
-    onProgress: (event: SolverProgressEvent) => void
+    onProgress: (event: SolverProgressEvent) => void,
+    abortSignal?: AbortSignal
   ): Promise<ScheduleDTO> {
     return new Promise((resolve, reject) => {
       // Use same base URL as axios client - this will use /api proxy in dev
@@ -77,6 +79,7 @@ class ApiClient {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(request),
+        signal: abortSignal,
       })
         .then(async (response) => {
           if (!response.ok) {

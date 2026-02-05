@@ -35,6 +35,19 @@ class TournamentConfig(BaseModel):
     rankCounts: Dict[str, int] = Field(default_factory=dict)  # {"MS": 3, "WS": 3, "MD": 2, "WD": 4, "XD": 2}
     enableCourtUtilization: Optional[bool] = True
     courtUtilizationPenalty: Optional[float] = 50.0
+    # Game proximity constraint
+    enableGameProximity: Optional[bool] = False
+    minGameSpacingSlots: Optional[int] = None
+    maxGameSpacingSlots: Optional[int] = None
+    gameProximityPenalty: Optional[float] = 5.0
+    # Compact schedule
+    enableCompactSchedule: Optional[bool] = False
+    compactScheduleMode: Optional[str] = "minimize_makespan"
+    compactSchedulePenalty: Optional[float] = 100.0
+    targetFinishSlot: Optional[int] = None
+    # Player overlap
+    allowPlayerOverlap: Optional[bool] = False
+    playerOverlapPenalty: Optional[float] = 50.0
 
 
 # Availability

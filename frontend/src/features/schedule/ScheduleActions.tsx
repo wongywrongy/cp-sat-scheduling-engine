@@ -18,25 +18,25 @@ export function ScheduleActions({
       <button
         onClick={onGenerate}
         disabled={generating}
-        className={`px-2 py-1 text-xs ${
+        className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
           generating
-            ? 'text-gray-400 cursor-not-allowed'
-            : 'text-gray-600 hover:text-gray-800'
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'bg-blue-600 text-white hover:bg-blue-700'
         }`}
       >
-        {generating ? 'Generating...' : 'Generate'}
+        {generating ? 'Generating...' : 'Generate Schedule'}
       </button>
       {hasSchedule && (
         <button
           onClick={onReoptimize}
           disabled={reoptimizing}
-          className={`px-2 py-1 text-xs ${
+          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
             reoptimizing
-              ? 'text-gray-400 cursor-not-allowed'
-              : 'text-gray-600 hover:text-gray-800'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
-          {reoptimizing ? 'Reoptimizing...' : 'Reoptimize'}
+          {reoptimizing ? 'Optimizing...' : 'Re-optimize'}
         </button>
       )}
     </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRoster } from '../hooks/useRoster';
 import { useRosterGroups } from '../hooks/useRosterGroups';
+import { useLockGuard } from '../hooks/useLockGuard';
 import { PlayerFormDialog } from '../features/roster/components/PlayerFormDialog';
 import { SchoolFormDialog } from '../features/roster/components/SchoolFormDialog';
 import { RankCoverageDashboard } from '../features/roster/RankCoverageDashboard';
@@ -9,6 +10,7 @@ import { BulkActionsToolbar } from '../features/roster/components/BulkActionsToo
 import { BulkSchoolAssignDialog } from '../features/roster/components/BulkSchoolAssignDialog';
 import { BulkRankAssignDialog } from '../features/roster/components/BulkRankAssignDialog';
 import { PlayerImportDialog } from '../features/roster/components/PlayerImportDialog';
+import { ScheduleLockIndicator } from '../components/status/ScheduleLockIndicator';
 import { useBulkOperations } from '../features/roster/hooks/useBulkOperations';
 import type { PlayerDTO, RosterGroupDTO } from '../api/dto';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +19,7 @@ export function RosterPage() {
   const { players, loading, error, createPlayer, updatePlayer, deletePlayer } = useRoster();
   const { groups, createGroup, updateGroup, deleteGroup } = useRosterGroups();
   const { bulkAssignSchool, bulkAssignRanks, bulkDeletePlayers } = useBulkOperations();
+  const { isLocked, confirmUnlock } = useLockGuard();
 
   const [showPlayerForm, setShowPlayerForm] = useState(false);
   const [showSchoolDialog, setShowSchoolDialog] = useState(false);
@@ -36,6 +39,7 @@ export function RosterPage() {
   };
 
   const handlePlayerSave = async (player: PlayerDTO) => {
+    if (!confirmUnlock()) return;
     try {
       if (editingPlayer) {
         await updatePlayer(editingPlayer.id, player);
@@ -55,6 +59,7 @@ export function RosterPage() {
   };
 
   const handlePlayerDelete = async (playerId: string) => {
+    if (!confirmUnlock()) return;
     if (confirm('Are you sure you want to delete this player?')) {
       try {
         await deletePlayer(playerId);
@@ -80,6 +85,7 @@ export function RosterPage() {
   };
 
   const handleSchoolSave = async (data: { name: string; color: string }) => {
+    if (!confirmUnlock()) return;
     try {
       if (editingSchool) {
         await updateGroup(editingSchool.id, {
@@ -101,6 +107,7 @@ export function RosterPage() {
   };
 
   const handleSchoolDelete = async () => {
+    if (!confirmUnlock()) return;
     if (editingSchool && confirm('Are you sure you want to delete this school? Players in this school will be ungrouped.')) {
       try {
         await deleteGroup(editingSchool.id);
@@ -119,6 +126,7 @@ export function RosterPage() {
   };
 
   const handleBulkSchoolConfirm = (clearConflictingRanks: boolean) => {
+    if (!confirmUnlock()) return;
     if (pendingSchoolId) {
       bulkAssignSchool(selectedPlayerIds, pendingSchoolId, clearConflictingRanks);
       setSelectedPlayerIds([]);
@@ -131,16 +139,19 @@ export function RosterPage() {
   };
 
   const handleBulkRankConfirm = (ranks: string[], mode: 'add' | 'set' | 'remove') => {
+    if (!confirmUnlock()) return;
     bulkAssignRanks(selectedPlayerIds, ranks, mode, true);
     setSelectedPlayerIds([]);
   };
 
   const handleBulkDelete = () => {
+    if (!confirmUnlock()) return;
     bulkDeletePlayers(selectedPlayerIds);
     setSelectedPlayerIds([]);
   };
 
   const handleImport = async (importedPlayers: PlayerDTO[], newGroups: RosterGroupDTO[]) => {
+    if (!confirmUnlock()) return;
     try {
       // Create new groups first
       for (const group of newGroups) {
@@ -160,6 +171,11 @@ export function RosterPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-3">
+      {/* Lock indicator */}
+      {isLocked && (
+        <ScheduleLockIndicator showUnlockHint className="mb-2" />
+      )}
+
       {/* Rank Coverage Dashboard */}
       <RankCoverageDashboard onEditSchool={handleEditSchool} />
 

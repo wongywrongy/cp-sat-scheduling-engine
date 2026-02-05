@@ -91,9 +91,11 @@ class ScheduleConfig(BaseModel):
     maxGameSpacingSlots: Optional[int] = Field(default=None, ge=0, description="Maximum slots between games for same player")
     gameProximityPenalty: float = Field(default=5.0, ge=0, description="Penalty weight for proximity violations")
 
-    # Compact schedule - minimize makespan (latest finish time)
+    # Compact schedule - minimize makespan or eliminate gaps
     enableCompactSchedule: bool = Field(default=False, description="Minimize schedule length by packing matches together")
-    compactSchedulePenalty: float = Field(default=100.0, ge=0, description="Penalty weight for makespan minimization")
+    compactScheduleMode: str = Field(default="minimize_makespan", description="Mode: minimize_makespan, no_gaps, or finish_by_time")
+    compactSchedulePenalty: float = Field(default=100.0, ge=0, description="Penalty weight for compact schedule")
+    targetFinishSlot: Optional[int] = Field(default=None, ge=0, description="Target finish slot for finish_by_time mode")
 
     # Allow player overlap - makes player non-overlap a soft constraint
     allowPlayerOverlap: bool = Field(default=False, description="Allow same player in multiple matches at once (soft constraint)")

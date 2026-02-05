@@ -84,44 +84,8 @@ export function LiveMetricsBar({
     return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
   };
 
-  const statusConfig = {
-    solving: {
-      bg: 'bg-blue-500',
-      text: 'Optimizing...',
-      glow: 'shadow-blue-500/50',
-    },
-    complete: {
-      bg: 'bg-green-500',
-      text: 'Complete',
-      glow: 'shadow-green-500/50',
-    },
-    error: {
-      bg: 'bg-red-500',
-      text: 'Error',
-      glow: 'shadow-red-500/50',
-    },
-  };
-
-  const { bg, text, glow } = statusConfig[status];
-
   return (
-    <div className="flex items-center gap-4">
-      {/* Status indicator */}
-      <div className="flex items-center gap-2">
-        <div className="relative">
-          <div
-            className={`w-2 h-2 rounded-full ${bg} transition-all duration-300
-              ${status === 'solving' ? 'animate-pulse' : ''}`}
-          />
-          {status === 'solving' && (
-            <div className={`absolute inset-0 w-2 h-2 rounded-full ${bg} animate-ping opacity-50`} />
-          )}
-        </div>
-        <span className="text-sm font-medium text-gray-700">{text}</span>
-      </div>
-
-      {/* Metrics - compact inline */}
-      <div className="flex items-center gap-3 text-sm">
+    <div className="flex items-center gap-3 text-sm">
         <div className="flex items-center gap-1">
           <span className="text-gray-500">Time:</span>
           <span className="font-mono font-medium text-gray-800 tabular-nums">{formatTime(elapsed)}</span>
@@ -149,7 +113,6 @@ export function LiveMetricsBar({
             </span>
           </div>
         )}
-      </div>
     </div>
   );
 }

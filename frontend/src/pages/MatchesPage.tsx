@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useMatches } from '../hooks/useMatches';
+import { useLockGuard } from '../hooks/useLockGuard';
 import { MatchesList } from '../features/matches/MatchesList';
 import { MatchForm } from '../features/matches/MatchForm';
 import { VisualMatchGenerator } from '../features/matches/VisualMatchGenerator';
 import { MatchBulkActionsToolbar } from '../features/matches/MatchBulkActionsToolbar';
+import { ScheduleLockIndicator } from '../components/status/ScheduleLockIndicator';
 import type { MatchDTO } from '../api/dto';
 
 export function MatchesPage() {
   const { matches, loading, error, createMatch, updateMatch, deleteMatch } = useMatches();
+  const { isLocked, confirmUnlock } = useLockGuard();
   const [showForm, setShowForm] = useState(false);
   const [showVisualGenerator, setShowVisualGenerator] = useState(false);
   const [matchType, setMatchType] = useState<'dual' | 'tri'>('dual');
@@ -20,6 +23,7 @@ export function MatchesPage() {
   };
 
   const handleSave = async (match: MatchDTO) => {
+    if (!confirmUnlock()) return;
     try {
       if (editingMatch) {
         await updateMatch(match.id, match);
@@ -39,6 +43,7 @@ export function MatchesPage() {
   };
 
   const handleDelete = async (matchId: string) => {
+    if (!confirmUnlock()) return;
     if (window.confirm('Are you sure you want to delete this match?')) {
       await deleteMatch(matchId);
     }
@@ -50,6 +55,7 @@ export function MatchesPage() {
   };
 
   const handleSaveGeneratedMatches = async (generatedMatches: MatchDTO[]) => {
+    if (!confirmUnlock()) return;
     try {
       for (const match of generatedMatches) {
         await createMatch(match);
@@ -61,6 +67,7 @@ export function MatchesPage() {
   };
 
   const handleBulkDelete = async () => {
+    if (!confirmUnlock()) return;
     const count = selectedMatchIds.length;
     if (window.confirm(`Are you sure you want to delete ${count} match${count !== 1 ? 'es' : ''}?`)) {
       try {
@@ -80,6 +87,11 @@ export function MatchesPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-3">
+      {/* Lock indicator */}
+      {isLocked && (
+        <ScheduleLockIndicator showUnlockHint className="mb-2" />
+      )}
+
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
           {error}

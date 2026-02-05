@@ -21,9 +21,11 @@ export interface TournamentConfig {
   minGameSpacingSlots?: number | null;
   maxGameSpacingSlots?: number | null;
   gameProximityPenalty?: number;
-  // Compact schedule - minimize makespan
+  // Compact schedule - minimize makespan or eliminate gaps
   enableCompactSchedule?: boolean;
+  compactScheduleMode?: 'minimize_makespan' | 'no_gaps' | 'finish_by_time';
   compactSchedulePenalty?: number;
+  targetFinishSlot?: number | null;
   // Allow player overlap
   allowPlayerOverlap?: boolean;
   playerOverlapPenalty?: number;
@@ -51,9 +53,11 @@ export interface TournamentConfigDTO {
   minGameSpacingSlots?: number | null;
   maxGameSpacingSlots?: number | null;
   gameProximityPenalty?: number;
-  // Compact schedule - minimize makespan
+  // Compact schedule - minimize makespan or eliminate gaps
   enableCompactSchedule?: boolean;
+  compactScheduleMode?: 'minimize_makespan' | 'no_gaps' | 'finish_by_time';
   compactSchedulePenalty?: number;
+  targetFinishSlot?: number | null;
   // Allow player overlap
   allowPlayerOverlap?: boolean;
   playerOverlapPenalty?: number;
@@ -141,6 +145,7 @@ export interface RosterImportDTO {
 // Match - simplified for school sparring (supports dual and tri-meets)
 export interface MatchDTO {
   id: string;
+  matchNumber?: number; // Auto-assigned sequential number for display (M1, M2, etc.)
   sideA: string[]; // Player IDs (School A)
   sideB: string[]; // Player IDs (School B)
   sideC?: string[]; // Player IDs (School C) - for tri-meets

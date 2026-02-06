@@ -81,7 +81,7 @@ export function SuggestedNextDock({
         ) : greenMatches.length === 0 ? (
           <div className="text-xs text-gray-500">No matches ready to call</div>
         ) : (
-          greenMatches.map((assignment, i) => {
+          greenMatches.map((assignment, _i) => {
             const match = matchMap.get(assignment.matchId);
             if (!match) return null;
 

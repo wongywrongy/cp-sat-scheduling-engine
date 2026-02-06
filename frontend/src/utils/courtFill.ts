@@ -44,8 +44,7 @@ export function findFreeCourts(
   matchStates: Record<string, MatchStateDTO>,
   matches: MatchDTO[],
   config: TournamentConfig,
-  currentSlot: number,
-  slotToTime: (slot: number) => string
+  currentSlot: number
 ): FreeCourt[] {
   const freeCourts: FreeCourt[] = [];
   const matchMap = new Map(matches.map((m) => [m.id, m]));
@@ -76,17 +75,10 @@ export function findFreeCourts(
 
     if (hasActiveMatch) continue;
 
-    // Check if there's a scheduled match for this court that should have started
-    const nextScheduled = courtAssignments.find((a) => {
-      const state = matchStates[a.matchId];
-      return !state || state.status === 'scheduled' || state.status === 'called';
-    });
-
     // Court is free if:
     // 1. A match just finished, OR
     // 2. There's no upcoming match scheduled
     if (lastFinished) {
-      const lastFinishedState = matchStates[lastFinished.matchId];
       const lastMatch = matchMap.get(lastFinished.matchId);
 
       // Calculate if it finished early
@@ -199,8 +191,7 @@ export function findAllCourtFillSuggestions(
     matchStates,
     matches,
     config,
-    currentSlot,
-    slotToTime
+    currentSlot
   );
 
   const suggestions: CourtFillSuggestion[] = [];

@@ -73,8 +73,8 @@ export function MatchesList({
       aValue = a.eventRank || '';
       bValue = b.eventRank || '';
     } else {
-      aValue = a.matchType;
-      bValue = b.matchType;
+      aValue = a.matchType || '';
+      bValue = b.matchType || '';
     }
 
     const comparison = aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: 'base' });
@@ -87,7 +87,7 @@ export function MatchesList({
     const query = searchQuery.toLowerCase().trim();
     return sortedMatches.filter(match => {
       if (match.eventRank?.toLowerCase().includes(query)) return true;
-      if (match.matchType.toLowerCase().includes(query)) return true;
+      if (match.matchType?.toLowerCase().includes(query)) return true;
       const sideANames = getPlayerNames(match.sideA);
       const sideBNames = getPlayerNames(match.sideB);
       const sideCNames = match.sideC ? getPlayerNames(match.sideC) : [];

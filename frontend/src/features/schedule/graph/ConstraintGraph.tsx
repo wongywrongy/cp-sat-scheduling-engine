@@ -29,7 +29,7 @@ const GROUP_COLORS = [
 ];
 
 export function ConstraintGraph({ data, width = 500, height = 350 }: ConstraintGraphProps) {
-  const fgRef = useRef<any>();
+  const fgRef = useRef<any>(null);
 
   // Assign colors to groups
   const groupColorMap = useMemo(() => {

@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { apiClient } from '../../api/client';
-import type { TournamentExportV2 } from '../../api/dto';
+import type { TournamentExportV2, MatchStateDTO } from '../../api/dto';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -29,13 +29,9 @@ export function TournamentFileManagement() {
       setMessage(null);
 
       // Fetch match states from backend (if they exist)
-      let matchStates: Record<string, unknown> = {};
+      let matchStates: Record<string, MatchStateDTO> = {};
       try {
-        const matchStatesArray = await apiClient.getMatchStates();
-        matchStates = matchStatesArray.reduce(
-          (acc, ms) => ({ ...acc, [ms.matchId]: ms }),
-          {}
-        );
+        matchStates = await apiClient.getMatchStates();
       } catch (err) {
         // Match states might not exist yet - that's okay
         console.warn('Could not fetch match states:', err);

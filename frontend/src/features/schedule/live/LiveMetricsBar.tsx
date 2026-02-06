@@ -57,7 +57,6 @@ export function LiveMetricsBar({
   solutionCount,
   objectiveScore,
   bestBound,
-  status,
 }: LiveMetricsBarProps) {
   const [showPulse, setShowPulse] = useState(false);
   const prevSolutionCountRef = useRef(solutionCount);

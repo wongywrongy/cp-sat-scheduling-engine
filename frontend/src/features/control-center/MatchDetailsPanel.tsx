@@ -87,7 +87,7 @@ export function MatchDetailsPanel({
   onSelectMatch,
   schedule,
   matchStates,
-  players,
+  players: _players,
   config,
   currentSlot,
 }: MatchDetailsPanelProps) {

@@ -3,7 +3,7 @@
  * Buffers incoming assignments and releases them at a consistent rate
  * for smoother, more linear animation regardless of backend timing.
  */
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { ScheduleAssignment } from '../api/dto';
 
 interface UseSmoothedAssignmentsOptions {

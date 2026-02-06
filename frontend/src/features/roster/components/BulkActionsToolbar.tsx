@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Menu } from '@headlessui/react';
 import type { RosterGroupDTO } from '../../../api/dto';
 

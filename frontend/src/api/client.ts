@@ -10,6 +10,7 @@ import type {
   ScheduleDTO,
   MatchStateDTO,
   SolverProgressEvent,
+  MatchGenerationRule,
 } from './dto';
 
 // Use /api proxy in dev, or explicit URL in production
@@ -224,6 +225,14 @@ class ApiClient {
   async importMatchStatesBulk(matchStates: Record<string, MatchStateDTO>): Promise<{ message: string; importedCount: number }> {
     const response = await this.client.post('/match-states/import-bulk', matchStates);
     return response.data;
+  }
+
+  /**
+   * Generate matches from a rule (placeholder - not yet implemented on backend)
+   * @throws Error - Feature not yet implemented
+   */
+  async generateMatchesFromRule(_tournamentId: string, _rule: MatchGenerationRule): Promise<MatchDTO[]> {
+    throw new Error('Auto-match generation is not yet implemented. Please create matches manually.');
   }
 }
 

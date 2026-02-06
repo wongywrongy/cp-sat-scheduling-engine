@@ -152,6 +152,10 @@ export interface LiveScheduleState {
 export interface RosterGroupDTO {
   id: string;
   name: string;
+  type?: 'group' | 'roster';
+  parentId?: string | null;
+  children?: string[]; // child group IDs
+  playerIds?: string[]; // player IDs (for roster type)
   metadata?: {
     description?: string;
     color?: string;
@@ -185,6 +189,21 @@ export interface RosterImportDTO {
   csv: string; // CSV content
 }
 
+// Match Type - used for UI selection mode and match categorization
+export type MatchType = 'individual' | 'roster_vs_roster' | 'roster_match' | 'auto_generated';
+
+// Match Generation Rule
+export interface MatchGenerationRule {
+  type: 'all_vs_all' | 'round_robin' | 'bracket' | 'custom';
+  rosterAId: string;
+  rosterBId?: string;
+  playersPerSide: number;
+  constraints?: {
+    avoidSameGroup?: boolean;
+    maxMatchesPerPlayer?: number;
+  };
+}
+
 // Match - simplified for school sparring (supports dual and tri-meets)
 export interface MatchDTO {
   id: string;
@@ -194,6 +213,7 @@ export interface MatchDTO {
   sideC?: string[]; // Player IDs (School C) - for tri-meets
   matchType?: 'dual' | 'tri'; // Match type
   eventRank?: string | null; // MS1, MS2, WS1, WS2, etc. - the rank/event this match represents
+  eventCode?: string; // Event code like 'MS1', 'WD2' etc.
   durationSlots: number;
   preferredCourt?: number | null;
   tags?: string[]; // Optional tags like ['School A', 'School B']

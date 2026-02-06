@@ -37,12 +37,6 @@ export function PublicDisplayPage() {
   // Group names map
   const groupNames = useMemo(() => new Map(groups.map(g => [g.id, g.name])), [groups]);
 
-  // Get player's group name
-  const getPlayerGroup = (playerId: string) => {
-    const player = players.find(p => p.id === playerId);
-    return player ? groupNames.get(player.groupId) || 'Unknown' : 'Unknown';
-  };
-
   // Match lookup
   const matchMap = useMemo(() => new Map(matches.map(m => [m.id, m])), [matches]);
 
@@ -107,8 +101,6 @@ export function PublicDisplayPage() {
       const state = matchStates[assignment.matchId];
       if (!match || !state?.score) return;
 
-      const sideAGroup = match.sideA?.[0] ? getPlayerGroup(match.sideA[0]) : null;
-      const sideBGroup = match.sideB?.[0] ? getPlayerGroup(match.sideB[0]) : null;
       const sideAGroupId = players.find(p => match.sideA?.includes(p.id))?.groupId;
       const sideBGroupId = players.find(p => match.sideB?.includes(p.id))?.groupId;
 

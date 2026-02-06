@@ -29,7 +29,6 @@ export function RankCheckboxGrid({
   selectedRanks,
   availableRanks,
   onToggleRank,
-  onSelectAllInCategory,
   onReassignRank,
   showSelected = true,
 }: RankCheckboxGridProps) {
@@ -51,8 +50,6 @@ export function RankCheckboxGrid({
       {/* Compact Grid - All categories visible */}
       <div className="grid grid-cols-5 gap-2">
         {sortedCategories.map(([categoryKey, category]) => {
-          const selectedInCat = category.ranks.filter(r => selectedRanks.includes(r.value)).length;
-
           return (
             <div key={categoryKey} className="space-y-1">
               {/* Category Header */}

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useAppStore } from '../../../store/appStore';
-import type { PlayerDTO, TournamentConfig } from '../../../api/dto';
+import type { PlayerDTO } from '../../../api/dto';
 
 interface RankOption {
   value: string;

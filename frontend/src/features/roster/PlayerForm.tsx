@@ -31,32 +31,6 @@ export function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
     player?.availability || []
   );
 
-  // Generate rank options based on tournament config
-  const generateRankOptions = () => {
-    const rankCounts = config?.rankCounts || { MS: 3, WS: 3, MD: 2, WD: 2, XD: 2 };
-    const options: Array<{ value: string; label: string }> = [];
-
-    const rankLabels: Record<string, string> = {
-      MS: "Men's Singles",
-      WS: "Women's Singles",
-      MD: "Men's Doubles",
-      WD: "Women's Doubles",
-      XD: "Mixed Doubles",
-    };
-
-    Object.entries(rankCounts).forEach(([rankKey, count]) => {
-      for (let i = 1; i <= count; i++) {
-        const rankValue = `${rankKey}${i}`;
-        const rankLabel = `${rankValue} - ${rankLabels[rankKey]} ${i}`;
-        options.push({ value: rankValue, label: rankLabel });
-      }
-    });
-
-    return options;
-  };
-
-  const rankOptions = generateRankOptions();
-
   // Group rank options by category for RankCheckboxGrid component
   const groupedRankOptions = () => {
     const rankCounts = config?.rankCounts || { MS: 3, WS: 3, MD: 2, WD: 2, XD: 2 };

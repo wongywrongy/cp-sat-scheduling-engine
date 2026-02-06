@@ -15,7 +15,6 @@ export function LiveConflictsPanel({
   violations,
   matchCount,
   totalMatches,
-  status,
 }: LiveConflictsPanelProps) {
   const unscheduledCount = totalMatches - matchCount;
   const [prevMatchCount, setPrevMatchCount] = useState(matchCount);

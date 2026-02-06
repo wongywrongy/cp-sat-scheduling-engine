@@ -50,6 +50,7 @@ interface AppState {
   updatePlayer: (id: string, updates: Partial<PlayerDTO>) => void;
   deletePlayer: (id: string) => void;
   importPlayers: (players: PlayerDTO[]) => void;
+  setPlayers: (players: PlayerDTO[]) => void;
 
   // Matches
   matches: MatchDTO[];
@@ -57,6 +58,7 @@ interface AppState {
   updateMatch: (id: string, updates: Partial<MatchDTO>) => void;
   deleteMatch: (id: string) => void;
   importMatches: (matches: MatchDTO[]) => void;
+  setMatches: (matches: MatchDTO[]) => void;
 
   // Schedule (not persisted - generated fresh each time)
   schedule: ScheduleDTO | null;
@@ -166,6 +168,7 @@ export const useAppStore = create<AppState>()(
           schedule: null, // Invalidate schedule
         })),
       importPlayers: (players) => set({ players, schedule: null }), // Invalidate schedule
+      setPlayers: (players) => set({ players, schedule: null }),
 
       // Match actions
       addMatch: (match) =>
@@ -194,6 +197,14 @@ export const useAppStore = create<AppState>()(
           matchNumber: m.matchNumber ?? index + 1,
         }));
         set({ matches: numberedMatches, schedule: null }); // Invalidate schedule
+      },
+      setMatches: (matches) => {
+        // Auto-assign match numbers
+        const numberedMatches = matches.map((m, index) => ({
+          ...m,
+          matchNumber: m.matchNumber ?? index + 1,
+        }));
+        set({ matches: numberedMatches, schedule: null });
       },
 
       // Schedule actions

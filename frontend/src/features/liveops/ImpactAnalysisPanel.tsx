@@ -35,7 +35,6 @@ export function ImpactAnalysisPanel({
 }: ImpactAnalysisPanelProps) {
   const matchMap = new Map(matches.map((m) => [m.id, m]));
 
-  const scheduledStartTime = slotToTime(analysis.scheduledEndSlot - (match?.durationSlots || 1));
   const scheduledEndTime = slotToTime(analysis.scheduledEndSlot);
   const actualEndTime = slotToTime(analysis.actualEndSlot);
 

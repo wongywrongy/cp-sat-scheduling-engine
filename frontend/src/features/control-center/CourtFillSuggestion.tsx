@@ -5,7 +5,6 @@
  * Director can accept, skip, or choose a different match.
  */
 import type { CourtFillSuggestion as Suggestion } from '../../utils/courtFill';
-import type { MatchStateDTO } from '../../api/dto';
 
 interface CourtFillSuggestionProps {
   suggestion: Suggestion;

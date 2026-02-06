@@ -59,9 +59,9 @@ function MatchesTable({
     }
     return Array.from(groups.entries())
       .sort(([a], [b]) => a - b)
-      .map(([slotId, items]) => ({
-        slotId,
-        time: formatSlotTime(slotId, config),
+      .map(([_slotId, items]) => ({
+        slotId: _slotId,
+        time: formatSlotTime(_slotId, config),
         assignments: items.sort((a, b) => a.courtId - b.courtId),
       }));
   }, [assignments, config]);
@@ -125,7 +125,7 @@ function MatchesTable({
               </tr>
             </thead>
             <tbody>
-              {byTime.flatMap(({ slotId, time, assignments: slotAssignments }) =>
+              {byTime.flatMap(({ slotId: _slotId, time, assignments: slotAssignments }) =>
                 slotAssignments.map((a, idx) => (
                   <tr key={a.matchId} className={`hover:bg-gray-50 ${idx === 0 ? 'border-t-2 border-gray-300' : 'border-t border-gray-100'}`}>
                     <td className="px-2 py-1 text-gray-500 font-mono whitespace-nowrap">
@@ -262,7 +262,7 @@ export function SchedulePage() {
   // Raw assignments from backend (live progress or stored)
   // Priority: live progress > final schedule > stats snapshot
   const rawAssignments = hasLiveProgress
-    ? generationProgress.current_assignments
+    ? (generationProgress.current_assignments ?? [])
     : (schedule?.assignments || scheduleStats?.assignments || []);
 
   // Smooth assignments for consistent animation during generation

@@ -15,7 +15,7 @@ export function useTournament() {
   return {
     config,
     loading: false,
-    error: null,
+    error: null as string | null,
     updateConfig,
     reloadConfig: () => {}, // No-op for local state
   };

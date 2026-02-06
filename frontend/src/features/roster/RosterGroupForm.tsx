@@ -38,7 +38,7 @@ export function RosterGroupForm({ group, allGroups, onSave, onCancel }: RosterGr
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
-    if (formData.type === 'group' && formData.playerIds.length > 0) {
+    if (formData.type === 'group' && (formData.playerIds?.length ?? 0) > 0) {
       newErrors.type = 'Groups cannot contain players directly. Use a roster type instead.';
     }
 

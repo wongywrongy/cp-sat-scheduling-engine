@@ -29,7 +29,6 @@ export function SchoolBadgeEditor({
 }: SchoolBadgeEditorProps) {
   const currentSchool = schools.find(s => s.id === currentSchoolId);
   const displayText = currentSchool?.name || 'No School';
-  const schoolColor = currentSchool?.metadata?.color;
 
   return (
     <Menu as="div" className={`relative inline-block ${className}`}>

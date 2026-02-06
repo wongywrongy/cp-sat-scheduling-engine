@@ -98,7 +98,6 @@ export function LiveScheduleGrid({
         <SolverProgressLog
           solutionCount={solutionCount}
           objectiveScore={objectiveScore}
-          bestBound={bestBound}
           matchCount={assignments.length}
           totalMatches={totalMatches ?? matches.length}
           status={status}

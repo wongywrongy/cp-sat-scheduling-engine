@@ -19,6 +19,7 @@ build/
 *.swp
 *.swo
 .cursor/
+.claude/
 
 # Testing
 .pytest_cache/

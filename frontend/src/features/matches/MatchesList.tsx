@@ -1,0 +1,390 @@
+import { useState, useEffect, useMemo } from 'react';
+import { Menu } from '@headlessui/react';
+import type { MatchDTO } from '../../api/dto';
+import { usePlayerNames } from '../../hooks/usePlayerNames';
+
+interface MatchesListProps {
+  matches: MatchDTO[];
+  onEdit: (match: MatchDTO) => void;
+  onDelete: (matchId: string) => void;
+  onSelectionChange?: (selectedIds: string[]) => void;
+  onAddMatch?: () => void;
+  onVisualGeneratorDual?: () => void;
+  onVisualGeneratorTri?: () => void;
+}
+
+export function MatchesList({
+  matches,
+  onEdit,
+  onDelete,
+  onSelectionChange,
+  onAddMatch,
+  onVisualGeneratorDual,
+  onVisualGeneratorTri,
+}: MatchesListProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sortField, setSortField] = useState<'eventRank' | 'type'>('eventRank');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [searchQuery, setSearchQuery] = useState('');
+  const { getPlayerNames } = usePlayerNames();
+
+  // Notify parent when selection changes
+  useEffect(() => {
+    if (onSelectionChange) {
+      onSelectionChange(Array.from(selectedIds));
+    }
+  }, [selectedIds, onSelectionChange]);
+
+  const toggleSelection = (matchId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(matchId)) {
+        next.delete(matchId);
+      } else {
+        next.add(matchId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === matches.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(matches.map(m => m.id)));
+    }
+  };
+
+  const handleSort = (field: 'eventRank' | 'type') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sort matches
+  const sortedMatches = [...matches].sort((a, b) => {
+    let aValue: string;
+    let bValue: string;
+
+    if (sortField === 'eventRank') {
+      aValue = a.eventRank || '';
+      bValue = b.eventRank || '';
+    } else {
+      aValue = a.matchType || '';
+      bValue = b.matchType || '';
+    }
+
+    const comparison = aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: 'base' });
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  // Filter matches by search query
+  const filteredMatches = useMemo(() => {
+    if (!searchQuery.trim()) return sortedMatches;
+    const query = searchQuery.toLowerCase().trim();
+    return sortedMatches.filter(match => {
+      if (match.eventRank?.toLowerCase().includes(query)) return true;
+      if (match.matchType?.toLowerCase().includes(query)) return true;
+      const sideANames = getPlayerNames(match.sideA);
+      const sideBNames = getPlayerNames(match.sideB);
+      const sideCNames = match.sideC ? getPlayerNames(match.sideC) : [];
+      if (sideANames.some(n => n.toLowerCase().includes(query))) return true;
+      if (sideBNames.some(n => n.toLowerCase().includes(query))) return true;
+      if (sideCNames.some(n => n.toLowerCase().includes(query))) return true;
+      return false;
+    });
+  }, [sortedMatches, searchQuery, getPlayerNames]);
+
+  const allSelected = matches.length > 0 && selectedIds.size === matches.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
+  if (matches.length === 0) {
+    return (
+      <div className="p-8 bg-white rounded border border-gray-200 text-center">
+        <div className="text-gray-400 mb-3">
+          <svg className="mx-auto h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+            />
+          </svg>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          No matches yet. Use the visual generator or add manually.
+        </p>
+        <div className="flex items-center justify-center gap-2">
+          {onVisualGeneratorDual && (
+            <button
+              onClick={onVisualGeneratorDual}
+              className="px-3 py-1.5 text-gray-600 hover:text-gray-800 text-sm"
+            >
+              Dual Generator
+            </button>
+          )}
+          {onVisualGeneratorTri && (
+            <button
+              onClick={onVisualGeneratorTri}
+              className="px-3 py-1.5 text-gray-600 hover:text-gray-800 text-sm"
+            >
+              Tri Generator
+            </button>
+          )}
+          {onAddMatch && (
+            <button
+              onClick={onAddMatch}
+              className="px-3 py-1.5 text-gray-600 hover:text-gray-800 text-sm"
+            >
+              Add Match
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded border border-gray-200 overflow-visible">
+      {/* Search Bar */}
+      <div className="px-2 py-1.5 border-b border-gray-200">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search event, player..."
+            className="w-full px-2 py-1 pl-7 text-xs border border-gray-200 rounded focus:outline-none focus:border-gray-400"
+          />
+          <svg
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* No results state */}
+      {filteredMatches.length === 0 && matches.length > 0 && (
+        <div className="px-2 py-4 text-center text-xs text-gray-500">
+          No matches found for "{searchQuery}"
+        </div>
+      )}
+
+      {filteredMatches.length > 0 && (
+      <table className="w-full text-xs">
+        <thead className="sticky top-0 bg-gray-100">
+          <tr>
+            <th className="px-2 py-1 w-8">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                ref={(el) => {
+                  if (el) {
+                    el.indeterminate = someSelected;
+                  }
+                }}
+                onChange={toggleSelectAll}
+                className="w-3.5 h-3.5 text-gray-800 border-gray-300 rounded focus:ring-gray-500"
+                aria-label="Select all matches"
+              />
+            </th>
+            <th className="px-2 py-1 text-left font-medium text-gray-600 w-16">
+              <button
+                onClick={() => handleSort('eventRank')}
+                className="flex items-center gap-0.5 hover:text-gray-800 focus:outline-none"
+              >
+                Event
+                {sortField === 'eventRank' && (
+                  <span className="text-gray-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </button>
+            </th>
+            <th className="px-2 py-1 text-left font-medium text-gray-600 w-12">
+              <button
+                onClick={() => handleSort('type')}
+                className="flex items-center gap-0.5 hover:text-gray-800 focus:outline-none"
+              >
+                Type
+                {sortField === 'type' && (
+                  <span className="text-gray-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </button>
+            </th>
+            <th className="px-2 py-1 text-left font-medium text-gray-600">
+              Side A
+            </th>
+            <th className="px-2 py-1 text-left font-medium text-gray-600">
+              Side B
+            </th>
+            <th className="px-2 py-1 text-left font-medium text-gray-600">
+              Side C
+            </th>
+            <th className="px-2 py-1 text-right">
+              <div className="flex items-center justify-end gap-1">
+                {onVisualGeneratorDual && (
+                  <button
+                    onClick={onVisualGeneratorDual}
+                    className="px-1.5 py-0.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
+                  >
+                    Dual
+                  </button>
+                )}
+                {onVisualGeneratorTri && (
+                  <button
+                    onClick={onVisualGeneratorTri}
+                    className="px-1.5 py-0.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
+                  >
+                    Tri
+                  </button>
+                )}
+                {onAddMatch && (
+                  <button
+                    onClick={onAddMatch}
+                    className="px-1.5 py-0.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
+                  >
+                    + Add
+                  </button>
+                )}
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredMatches.map((match) => {
+            const isSelected = selectedIds.has(match.id);
+            return (
+              <tr
+                key={match.id}
+                className={`border-t border-gray-100 hover:bg-gray-50 ${isSelected ? 'bg-gray-100' : ''}`}
+              >
+                <td className="px-2 py-1">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleSelection(match.id)}
+                    className="w-3.5 h-3.5 text-gray-800 border-gray-300 rounded focus:ring-gray-500"
+                    aria-label={`Select match ${match.eventRank || match.id}`}
+                  />
+                </td>
+                <td className="px-2 py-1 font-medium text-gray-700">{match.eventRank || '-'}</td>
+              <td className="px-2 py-1 text-gray-500">
+                {match.matchType === 'tri' ? 'Tri' : 'Dual'}
+              </td>
+              <td className="px-2 py-1 text-gray-600 truncate max-w-32" title={getPlayerNames(match.sideA).join(' & ')}>
+                {match.sideA.length > 0 ? getPlayerNames(match.sideA).join(' & ') : '-'}
+              </td>
+              <td className="px-2 py-1 text-gray-600 truncate max-w-32" title={getPlayerNames(match.sideB).join(' & ')}>
+                {match.sideB.length > 0 ? getPlayerNames(match.sideB).join(' & ') : '-'}
+              </td>
+              <td className="px-2 py-1 text-gray-600 truncate max-w-32" title={match.sideC ? getPlayerNames(match.sideC).join(' & ') : ''}>
+                {match.sideC && match.sideC.length > 0 ? getPlayerNames(match.sideC).join(' & ') : '-'}
+              </td>
+              <td className="px-2 py-1 text-right">
+                <Menu as="div" className="relative inline-block text-left">
+                  <Menu.Button className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 rounded">
+                    <span className="sr-only">Open menu</span>
+                    <svg
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                  </Menu.Button>
+
+                  <Menu.Items className="absolute right-0 z-10 mt-1 w-40 origin-top-right rounded bg-white shadow-sm ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="py-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={() => onEdit(match)}
+                            className={`${
+                              active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                            } group flex w-full items-center px-4 py-2 text-sm`}
+                          >
+                            <svg
+                              className="mr-3 h-4 w-4 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                            Edit
+                          </button>
+                        )}
+                      </Menu.Item>
+
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={() => onDelete(match.id)}
+                            className={`${
+                              active ? 'bg-red-50 text-red-900' : 'text-red-700'
+                            } group flex w-full items-center px-4 py-2 text-sm`}
+                          >
+                            <svg
+                              className="mr-3 h-4 w-4 text-red-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                            Delete
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  </Menu.Items>
+                </Menu>
+              </td>
+            </tr>
+          );
+          })}
+        </tbody>
+      </table>
+      )}
+
+      {/* Selection info - shown below table when matches are selected */}
+      {selectedIds.size > 0 && (
+        <div className="px-2 py-1 bg-gray-50 border-t border-gray-200 text-xs text-gray-600 flex items-center justify-between">
+          <span>{selectedIds.size} selected{searchQuery && ` (${filteredMatches.length} shown)`}</span>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

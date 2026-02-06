@@ -5,7 +5,7 @@ They mirror the API schemas but are independent of FastAPI.
 """
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 
 class SolverStatus(str, Enum):
@@ -58,13 +58,31 @@ class ScheduleConfig:
     default_rest_slots: int = 1
     freeze_horizon_slots: int = 0
     current_slot: int = 0
-    
+
     # Objective weights
     soft_rest_enabled: bool = False
     rest_slack_penalty: float = 10.0
     disruption_penalty: float = 1.0
     late_finish_penalty: float = 0.5
     court_change_penalty: float = 0.5
+    enable_court_utilization: bool = True
+    court_utilization_penalty: float = 50.0
+
+    # Game proximity constraint
+    enable_game_proximity: bool = False
+    min_game_spacing_slots: Optional[int] = None
+    max_game_spacing_slots: Optional[int] = None
+    game_proximity_penalty: float = 5.0
+
+    # Compact schedule - minimize makespan or eliminate gaps
+    enable_compact_schedule: bool = False
+    compact_schedule_mode: str = "minimize_makespan"  # "minimize_makespan" | "no_gaps" | "finish_by_time"
+    compact_schedule_penalty: float = 100.0
+    target_finish_slot: Optional[int] = None  # For "finish_by_time" mode
+
+    # Allow player overlap - makes player non-overlap a soft constraint
+    allow_player_overlap: bool = False
+    player_overlap_penalty: float = 50.0
 
 
 @dataclass

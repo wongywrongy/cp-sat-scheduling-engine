@@ -77,13 +77,29 @@ class ScheduleConfig(BaseModel):
     defaultRestSlots: int = Field(default=1, ge=0, description="Default rest slots between matches")
     freezeHorizonSlots: int = Field(default=0, ge=0, description="Slots from currentSlot that are frozen")
     currentSlot: int = Field(default=0, ge=0, description="Current time as slot ID (for freeze horizon)")
-    
+
     # Objective weights
     softRestEnabled: bool = Field(default=False, description="Allow rest as soft constraint")
     restSlackPenalty: float = Field(default=10.0, ge=0, description="Penalty for rest violations")
     disruptionPenalty: float = Field(default=1.0, ge=0, description="Penalty for moving from previous schedule")
     lateFinishPenalty: float = Field(default=0.5, ge=0, description="Penalty for late start times")
     courtChangePenalty: float = Field(default=0.5, ge=0, description="Penalty for changing courts")
+
+    # Game proximity constraint
+    enableGameProximity: bool = Field(default=False, description="Enable game spacing constraint")
+    minGameSpacingSlots: Optional[int] = Field(default=None, ge=0, description="Minimum slots between games for same player")
+    maxGameSpacingSlots: Optional[int] = Field(default=None, ge=0, description="Maximum slots between games for same player")
+    gameProximityPenalty: float = Field(default=5.0, ge=0, description="Penalty weight for proximity violations")
+
+    # Compact schedule - minimize makespan or eliminate gaps
+    enableCompactSchedule: bool = Field(default=False, description="Minimize schedule length by packing matches together")
+    compactScheduleMode: str = Field(default="minimize_makespan", description="Mode: minimize_makespan, no_gaps, or finish_by_time")
+    compactSchedulePenalty: float = Field(default=100.0, ge=0, description="Penalty weight for compact schedule")
+    targetFinishSlot: Optional[int] = Field(default=None, ge=0, description="Target finish slot for finish_by_time mode")
+
+    # Allow player overlap - makes player non-overlap a soft constraint
+    allowPlayerOverlap: bool = Field(default=False, description="Allow same player in multiple matches at once (soft constraint)")
+    playerOverlapPenalty: float = Field(default=50.0, ge=0, description="Penalty weight for player overlap violations")
 
 
 class SolverOptions(BaseModel):

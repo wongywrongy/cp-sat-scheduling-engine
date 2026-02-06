@@ -1,0 +1,101 @@
+/**
+ * Court Selection Dialog
+ * Shown when starting a match to confirm/change the court
+ */
+import { useState } from 'react';
+
+interface CourtSelectDialogProps {
+  matchName: string;
+  scheduledCourt: number;
+  courtCount: number;
+  occupiedCourts: number[]; // Courts with in-progress matches
+  onConfirm: (courtId: number) => void;
+  onCancel: () => void;
+  isSubmitting?: boolean;
+}
+
+export function CourtSelectDialog({
+  matchName,
+  scheduledCourt,
+  courtCount,
+  occupiedCourts,
+  onConfirm,
+  onCancel,
+  isSubmitting = false,
+}: CourtSelectDialogProps) {
+  const [selectedCourt, setSelectedCourt] = useState(scheduledCourt);
+
+  const isOccupied = occupiedCourts.includes(selectedCourt);
+  const courts = Array.from({ length: courtCount }, (_, i) => i + 1);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-64">
+        {/* Header */}
+        <div className="px-3 py-2 border-b border-gray-200">
+          <h3 className="text-sm font-semibold text-gray-900">Start {matchName}</h3>
+        </div>
+
+        {/* Court Selection */}
+        <div className="p-3">
+          <div className="text-xs text-gray-500 mb-2">Select court:</div>
+
+          <div className="grid grid-cols-4 gap-1 mb-3">
+            {courts.map((court) => {
+              const isSelected = selectedCourt === court;
+              const courtOccupied = occupiedCourts.includes(court);
+
+              return (
+                <button
+                  key={court}
+                  onClick={() => setSelectedCourt(court)}
+                  className={`px-2 py-1.5 text-sm font-medium rounded border transition-colors ${
+                    isSelected
+                      ? 'bg-green-600 text-white border-green-600'
+                      : courtOccupied
+                        ? 'bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  {court}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Warning if occupied */}
+          {isOccupied && (
+            <div className="px-2 py-1.5 bg-yellow-50 border border-yellow-200 rounded text-[10px] text-yellow-700 mb-3">
+              Court {selectedCourt} has a match in progress
+            </div>
+          )}
+
+          {/* Different from scheduled */}
+          {selectedCourt !== scheduledCourt && (
+            <div className="text-[10px] text-gray-500 mb-3">
+              Originally scheduled: Court {scheduledCourt}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              disabled={isSubmitting}
+              className="flex-1 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => onConfirm(selectedCourt)}
+              disabled={isSubmitting}
+              className="flex-1 px-3 py-1.5 text-sm text-white bg-green-600 rounded hover:bg-green-700 disabled:bg-gray-300 font-medium"
+            >
+              {isSubmitting ? 'Starting...' : 'Start'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

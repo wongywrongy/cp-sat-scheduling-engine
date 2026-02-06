@@ -1,0 +1,283 @@
+/**
+ * Data Transfer Objects (DTOs) - Single source of truth for API requests/responses
+ * These types match the backend API contract exactly.
+ */
+
+// Tournament Configuration
+export interface TournamentConfig {
+  intervalMinutes: number;
+  dayStart: string; // HH:mm format
+  dayEnd: string; // HH:mm format
+  tournamentDate?: string; // ISO date string: "2026-02-15"
+  breaks: BreakWindow[];
+  courtCount: number;
+  defaultRestMinutes: number;
+  freezeHorizonSlots: number;
+  rankCounts?: Record<string, number>; // {"MS": 3, "WS": 3, "MD": 2, "WD": 4, "XD": 2}
+  enableCourtUtilization?: boolean;
+  courtUtilizationPenalty?: number;
+  // Game proximity constraint
+  enableGameProximity?: boolean;
+  minGameSpacingSlots?: number | null;
+  maxGameSpacingSlots?: number | null;
+  gameProximityPenalty?: number;
+  // Compact schedule - minimize makespan or eliminate gaps
+  enableCompactSchedule?: boolean;
+  compactScheduleMode?: 'minimize_makespan' | 'no_gaps' | 'finish_by_time';
+  compactSchedulePenalty?: number;
+  targetFinishSlot?: number | null;
+  // Allow player overlap
+  allowPlayerOverlap?: boolean;
+  playerOverlapPenalty?: number;
+  // Scoring format for badminton
+  scoringFormat?: 'simple' | 'badminton';
+  setsToWin?: number; // 1 (best of 1), 2 (best of 3), or 3 (best of 5)
+  pointsPerSet?: number; // 11, 15, or 21
+  deuceEnabled?: boolean; // Win by 2 in deuce (up to 30 for 21-point sets)
+}
+
+export interface BreakWindow {
+  start: string; // HH:mm format
+  end: string; // HH:mm format
+}
+
+export interface TournamentConfigDTO {
+  intervalMinutes: number;
+  dayStart: string;
+  dayEnd: string;
+  tournamentDate?: string; // ISO date string: "2026-02-15"
+  breaks: BreakWindow[];
+  courtCount: number;
+  defaultRestMinutes: number;
+  freezeHorizonSlots: number;
+  rankCounts?: Record<string, number>;
+  enableCourtUtilization?: boolean;
+  courtUtilizationPenalty?: number;
+  // Game proximity constraint
+  enableGameProximity?: boolean;
+  minGameSpacingSlots?: number | null;
+  maxGameSpacingSlots?: number | null;
+  gameProximityPenalty?: number;
+  // Compact schedule - minimize makespan or eliminate gaps
+  enableCompactSchedule?: boolean;
+  compactScheduleMode?: 'minimize_makespan' | 'no_gaps' | 'finish_by_time';
+  compactSchedulePenalty?: number;
+  targetFinishSlot?: number | null;
+  // Allow player overlap
+  allowPlayerOverlap?: boolean;
+  playerOverlapPenalty?: number;
+  // Scoring format for badminton
+  scoringFormat?: 'simple' | 'badminton';
+  setsToWin?: number;
+  pointsPerSet?: number;
+  deuceEnabled?: boolean;
+}
+
+// Schedule Views
+export type ScheduleView = 'timeslot' | 'court';
+
+// Schedule
+export interface ScheduleDTO {
+  assignments: ScheduleAssignment[];
+  unscheduledMatches: string[];
+  softViolations: SoftViolation[];
+  objectiveScore: number | null;
+  infeasibleReasons: string[];
+  status: 'optimal' | 'feasible' | 'infeasible' | 'unknown';
+}
+
+export interface ScheduleAssignment {
+  matchId: string;
+  slotId: number;
+  courtId: number;
+  durationSlots: number;
+}
+
+export interface SoftViolation {
+  type: string;
+  matchId?: string | null;
+  playerId?: string | null;
+  description: string;
+  penaltyIncurred: number;
+}
+
+// Set score for badminton matches
+export interface SetScore {
+  sideA: number;
+  sideB: number;
+}
+
+// Delay reason options
+export type DelayReason = 'player_not_present' | 'injury' | 'court_issue' | 'other';
+
+// Player confirmation entry for tracking who caused a delay
+export interface PlayerDelayEntry {
+  matchId: string;
+  playerId: string;
+  reason: DelayReason;
+  timestamp: string;
+}
+
+// Match State (for Match Desk operations)
+export interface MatchStateDTO {
+  matchId: string;
+  status: 'scheduled' | 'called' | 'started' | 'finished';
+  actualStartTime?: string;
+  actualEndTime?: string;
+  actualCourtId?: number; // Override court if different from scheduled
+  originalSlotId?: number; // Original scheduled slot before being pushed
+  originalCourtId?: number; // Original scheduled court before being pushed
+  delayed?: boolean; // Explicitly marked as delayed
+  delayReason?: DelayReason; // Reason for delay
+  delayedPlayerId?: string; // Which player caused the delay (for tracking)
+  postponed?: boolean; // Match is postponed to later
+  pinned?: boolean; // Pinned to court/time (for finals/special matches)
+  playerConfirmations?: Record<string, boolean>; // Player ID -> confirmed at court
+  score?: {
+    sideA: number;
+    sideB: number;
+  };
+  sets?: SetScore[]; // For badminton set-by-set scoring
+  notes?: string;
+  updatedAt?: string;
+}
+
+export interface LiveScheduleState {
+  currentTime: string;
+  matchStates: Record<string, MatchStateDTO>;
+  lastSynced: string;
+}
+
+// Roster Group (for school grouping)
+export interface RosterGroupDTO {
+  id: string;
+  name: string;
+  type?: 'group' | 'roster';
+  parentId?: string | null;
+  children?: string[]; // child group IDs
+  playerIds?: string[]; // player IDs (for roster type)
+  metadata?: {
+    description?: string;
+    color?: string;
+    [key: string]: any;
+  };
+}
+
+// Withdrawal reason
+export type WithdrawalReason = 'injury' | 'no_show' | 'disqualification' | 'personal' | 'other';
+
+// Player
+export interface PlayerDTO {
+  id: string; // Auto-generated UUID
+  name: string;
+  groupId: string; // School group ID (REQUIRED - this is school vs school scheduling)
+  ranks?: string[]; // [MS1, MD1, XD1] - Player can play multiple events
+  availability: AvailabilityWindow[];
+  minRestMinutes?: number | null; // If not provided, uses tournament config's defaultRestMinutes
+  notes?: string;
+  status?: 'active' | 'withdrawn'; // Player status - defaults to 'active'
+  withdrawalReason?: WithdrawalReason; // Reason if withdrawn
+  withdrawnAt?: string; // Timestamp when withdrawn
+}
+
+export interface AvailabilityWindow {
+  start: string; // HH:mm format
+  end: string; // HH:mm format
+}
+
+export interface RosterImportDTO {
+  csv: string; // CSV content
+}
+
+// Match Type - used for UI selection mode and match categorization
+export type MatchType = 'individual' | 'roster_vs_roster' | 'roster_match' | 'auto_generated';
+
+// Match Generation Rule
+export interface MatchGenerationRule {
+  type: 'all_vs_all' | 'round_robin' | 'bracket' | 'custom';
+  rosterAId: string;
+  rosterBId?: string;
+  playersPerSide: number;
+  constraints?: {
+    avoidSameGroup?: boolean;
+    maxMatchesPerPlayer?: number;
+  };
+}
+
+// Match - simplified for school sparring (supports dual and tri-meets)
+export interface MatchDTO {
+  id: string;
+  matchNumber?: number; // Auto-assigned sequential number for display (M1, M2, etc.)
+  sideA: string[]; // Player IDs (School A)
+  sideB: string[]; // Player IDs (School B)
+  sideC?: string[]; // Player IDs (School C) - for tri-meets
+  matchType?: 'dual' | 'tri'; // Match type
+  eventRank?: string | null; // MS1, MS2, WS1, WS2, etc. - the rank/event this match represents
+  eventCode?: string; // Event code like 'MS1', 'WD2' etc.
+  durationSlots: number;
+  preferredCourt?: number | null;
+  tags?: string[]; // Optional tags like ['School A', 'School B']
+}
+
+export interface MatchesImportDTO {
+  csv: string; // CSV content
+}
+
+// Tournament Export/Import (Complete tournament data - v2.0 format)
+export interface TournamentExportV2 {
+  version: '2.0';
+  exportedAt: string; // ISO timestamp
+  config: TournamentConfig;
+  players: PlayerDTO[];
+  matches: MatchDTO[];
+  schedule?: ScheduleDTO;
+  matchStates?: Record<string, MatchStateDTO>;
+}
+
+// Verbose message from solver
+export interface SolverProgressMessage {
+  type: 'progress';
+  text: string;
+}
+
+// Solver Progress (for real-time optimization visualization)
+export interface SolverProgressEvent {
+  elapsed_ms: number;
+  current_objective?: number;
+  best_bound?: number;
+  solution_count?: number;
+  current_assignments?: ScheduleAssignment[];
+  gap_percent?: number;
+  messages?: SolverProgressMessage[];
+}
+
+// Constraint Visualization Types
+export interface ConstraintViolation {
+  type: 'rest' | 'overlap' | 'availability' | 'court_capacity' | 'game_proximity_min' | 'game_proximity_max';
+  severity: 'hard' | 'soft';
+  playerIds: string[];
+  matchIds: string[];
+  description: string;
+}
+
+export interface GraphNode {
+  id: string;
+  name: string;
+  groupId: string;
+  matchCount: number;
+  x?: number;
+  y?: number;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  matchId: string;
+  status: 'conflict' | 'resolved' | 'soft_violation';
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  links: GraphEdge[];
+}
+

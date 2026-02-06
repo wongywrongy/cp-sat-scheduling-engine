@@ -22,6 +22,8 @@ def extract_solution(
     locked_matches: Set[str],
     x: Dict[Tuple[str, int, int], cp_model.IntVar],
     rest_slack: Dict[Tuple[str, str, str], cp_model.IntVar],
+    proximity_min_slack: Dict[Tuple[str, str, str], cp_model.IntVar],
+    proximity_max_slack: Dict[Tuple[str, str, str], cp_model.IntVar],
     config: ScheduleConfig,
     status: SolverStatus,
     runtime_ms: float,
@@ -75,5 +77,35 @@ def extract_solution(
                     description=f"Player {player_name} has {slack_val} slots less rest than required",
                     penalty_incurred=slack_val * (player.rest_penalty if player else config.rest_slack_penalty),
                 ))
-    
+
+    # Extract game proximity violations
+    if config.enable_game_proximity:
+        penalty = config.game_proximity_penalty
+
+        # Minimum spacing violations (games too close)
+        for (player_id, m_i, m_j), slack in proximity_min_slack.items():
+            slack_val = solver.Value(slack)
+            if slack_val > 0:
+                player = players.get(player_id)
+                player_name = player.name if player else player_id
+                soft_violations.append(SoftViolation(
+                    type="game_proximity_min",
+                    player_id=player_id,
+                    description=f"Player {player_name}: games {slack_val} slots closer than minimum spacing",
+                    penalty_incurred=slack_val * penalty,
+                ))
+
+        # Maximum spacing violations (games too far apart)
+        for (player_id, m_i, m_j), slack in proximity_max_slack.items():
+            slack_val = solver.Value(slack)
+            if slack_val > 0:
+                player = players.get(player_id)
+                player_name = player.name if player else player_id
+                soft_violations.append(SoftViolation(
+                    type="game_proximity_max",
+                    player_id=player_id,
+                    description=f"Player {player_name}: games {slack_val} slots farther than maximum spacing",
+                    penalty_incurred=slack_val * penalty,
+                ))
+
     return assignments, soft_violations, moved_count

@@ -4,12 +4,13 @@
  * Center: Tabbed Up Next / Finished with colored left borders
  */
 import { useState, useMemo, useEffect } from 'react';
-import type { ScheduleAssignment, MatchDTO, MatchStateDTO, TournamentConfig, SetScore, DelayReason } from '../../api/dto';
+import type { ScheduleAssignment, MatchDTO, MatchStateDTO, TournamentConfig, SetScore, PlayerDTO } from '../../api/dto';
 import type { TrafficLightResult } from '../../utils/trafficLight';
 import { formatSlotTime } from '../../utils/timeUtils';
 import { MatchScoreDialog } from '../tracking/MatchScoreDialog';
 import { BadmintonScoreDialog } from '../tracking/BadmintonScoreDialog';
-import { DelayReasonDialog } from '../tracking/DelayReasonDialog';
+import { EditMatchDialog } from './EditMatchDialog';
+import { CourtSelectDialog } from './CourtSelectDialog';
 
 interface WorkflowPanelProps {
   matchesByStatus: {
@@ -23,10 +24,14 @@ interface WorkflowPanelProps {
   config: TournamentConfig | null;
   currentSlot: number;
   onUpdateStatus: (matchId: string, status: MatchStateDTO['status'], additionalData?: Partial<MatchStateDTO>) => Promise<void>;
+  onConfirmPlayer?: (matchId: string, playerId: string, confirmed: boolean) => Promise<void>;
   selectedMatchId?: string | null;
   onSelectMatch?: (matchId: string) => void;
   trafficLights?: Map<string, TrafficLightResult>;
   playerNames: Map<string, string>;
+  players: PlayerDTO[];
+  onSubstitute?: (matchId: string, oldPlayerId: string, newPlayerId: string) => void;
+  onRemovePlayer?: (matchId: string, playerId: string) => void;
 }
 
 function getMatchLabel(match: MatchDTO | undefined): string {
@@ -138,36 +143,36 @@ function InProgressCard({
     <>
       <div
         onClick={onSelect}
-        className={`rounded-lg border p-2.5 mb-1.5 cursor-pointer transition-all ${
+        className={`rounded border p-1.5 mb-1 cursor-pointer transition-all ${
           isSelected
-            ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50'
+            ? 'border-blue-500 ring-1 ring-blue-200 bg-blue-50'
             : 'border-green-200 bg-green-50 hover:border-green-300'
         }`}
       >
-        <div className="flex justify-between items-center mb-1">
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-sm">{getMatchLabel(match)}</span>
-            <span className="text-xs text-gray-500">C{assignment.courtId}</span>
+        <div className="flex justify-between items-center mb-0.5">
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-xs text-gray-700">{getMatchLabel(match)}</span>
+            <span className="text-[10px] text-gray-500">C{assignment.courtId}</span>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-0.5">
             <button
               onClick={(e) => { e.stopPropagation(); setShowScoreDialog(true); }}
               disabled={updating}
-              className="px-2.5 py-1 bg-purple-600 text-white rounded text-xs font-semibold hover:bg-purple-700 disabled:bg-gray-400"
+              className="px-1.5 py-0.5 bg-purple-600 text-white rounded text-[10px] font-medium hover:bg-purple-700 disabled:bg-gray-400"
             >
               Finish
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleUndo(); }}
               disabled={updating}
-              className="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs hover:bg-gray-300 disabled:bg-gray-100"
+              className="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] hover:bg-gray-300 disabled:bg-gray-100"
             >
               Undo
             </button>
           </div>
         </div>
-        <div className="text-xs text-gray-700 mb-1 truncate">{sideANames} vs {sideBNames}</div>
-        <div className="text-xs text-gray-500">
+        <div className="text-[10px] text-gray-600 truncate">{sideANames} vs {sideBNames}</div>
+        <div className="text-[10px] text-gray-500">
           <ElapsedTimer startTime={matchState?.actualStartTime} />
         </div>
       </div>
@@ -206,6 +211,7 @@ function UpNextCard({
   match,
   matchState,
   playerNames,
+  playerDelayCounts,
   trafficLight,
   isSelected,
   isCalled,
@@ -213,11 +219,16 @@ function UpNextCard({
   currentSlot,
   onSelect,
   onUpdateStatus,
+  onConfirmPlayer,
+  players,
+  onSubstitute,
+  onWithdraw,
 }: {
   assignment: ScheduleAssignment;
   match: MatchDTO | undefined;
   matchState: MatchStateDTO | undefined;
   playerNames: Map<string, string>;
+  playerDelayCounts: Map<string, number>;
   trafficLight?: TrafficLightResult;
   isSelected: boolean;
   isCalled: boolean;
@@ -225,29 +236,63 @@ function UpNextCard({
   currentSlot: number;
   onSelect: () => void;
   onUpdateStatus: (matchId: string, status: MatchStateDTO['status'], data?: Partial<MatchStateDTO>) => Promise<void>;
+  onConfirmPlayer?: (matchId: string, playerId: string, confirmed: boolean) => Promise<void>;
+  players: PlayerDTO[];
+  onSubstitute?: (matchId: string, oldPlayerId: string, newPlayerId: string) => void;
+  onRemovePlayer?: (matchId: string, playerId: string) => void;
+  occupiedCourts: number[];
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [showDelayDialog, setShowDelayDialog] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showCourtDialog, setShowCourtDialog] = useState(false);
 
   if (!match) return null;
 
-  const sideANames = (match.sideA || []).map((id) => playerNames.get(id) || id).join(' & ');
-  const sideBNames = (match.sideB || []).map((id) => playerNames.get(id) || id).join(' & ');
+  // Format players for the edit dialog
+  const sideAPlayersForEdit = (match.sideA || []).map(id => ({
+    id,
+    name: playerNames.get(id) || id,
+    side: 'A' as const,
+  }));
+  const sideBPlayersForEdit = (match.sideB || []).map(id => ({
+    id,
+    name: playerNames.get(id) || id,
+    side: 'B' as const,
+  }));
+
+  // Format player names with delay badges
+  const formatPlayerWithBadge = (playerId: string) => {
+    const name = playerNames.get(playerId) || playerId;
+    const delayCount = playerDelayCounts.get(playerId) || 0;
+    return { id: playerId, name, delayCount };
+  };
+
+  const sideAPlayers = (match.sideA || []).map(formatPlayerWithBadge);
+  const sideBPlayers = (match.sideB || []).map(formatPlayerWithBadge);
+  const sideANames = sideAPlayers.map(p => p.name).join(' & ');
+  const sideBNames = sideBPlayers.map(p => p.name).join(' & ');
+  const hasDelayedPlayers = [...sideAPlayers, ...sideBPlayers].some(p => p.delayCount > 0);
   const scheduledTime = config ? formatSlotTime(assignment.slotId, config) : '??:??';
   const isLate = currentSlot > assignment.slotId && !isCalled;
 
   const light = trafficLight?.status || 'green';
 
+  // Player confirmation tracking for called matches
+  const allPlayerIds = [...(match.sideA || []), ...(match.sideB || [])];
+  const confirmations = matchState?.playerConfirmations || {};
+  const confirmedCount = allPlayerIds.filter(id => confirmations[id]).length;
+  const allPlayersConfirmed = confirmedCount === allPlayerIds.length;
+  const missingPlayers = allPlayerIds.filter(id => !confirmations[id]);
+
   // Border and background colors based on traffic light
   const borderColorClass = light === 'green'
     ? 'border-l-green-500'
     : light === 'yellow'
-      ? 'border-l-yellow-500'
+      ? 'border-l-yellow-400'
       : 'border-l-red-500';
 
   const bgColorClass = light === 'green'
-    ? 'bg-green-50'
+    ? 'bg-white'
     : light === 'yellow'
       ? 'bg-yellow-50'
       : 'bg-red-50';
@@ -267,25 +312,39 @@ function UpNextCard({
     }
   };
 
-  const handleStart = async () => {
+  const handleStart = async (courtId: number) => {
     setUpdating(true);
     try {
-      await onUpdateStatus(assignment.matchId, 'started');
+      // Only set actualCourtId if different from scheduled
+      const additionalData: Partial<MatchStateDTO> = {};
+      if (courtId !== assignment.courtId) {
+        additionalData.actualCourtId = courtId;
+      }
+      await onUpdateStatus(assignment.matchId, 'started', additionalData);
+      setShowCourtDialog(false);
     } finally {
       setUpdating(false);
     }
   };
 
-  const handleDelayWithReason = async (reason: DelayReason, notes?: string) => {
+  const handleConfirmPlayer = async (playerId: string) => {
+    if (!onConfirmPlayer) return;
     setUpdating(true);
     try {
-      const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const isCurrentlyConfirmed = confirmations[playerId] || false;
+      await onConfirmPlayer(assignment.matchId, playerId, !isCurrentlyConfirmed);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handlePostpone = async () => {
+    setUpdating(true);
+    try {
+      const isPostponed = matchState?.postponed || false;
       await onUpdateStatus(assignment.matchId, 'scheduled', {
-        delayed: true,
-        delayReason: reason,
-        notes: notes ? `Delayed at ${timestamp}: ${notes}` : `Delayed at ${timestamp}`,
+        postponed: !isPostponed,
       });
-      setShowDelayDialog(false);
     } finally {
       setUpdating(false);
     }
@@ -304,33 +363,37 @@ function UpNextCard({
     <>
       <div
         onClick={onSelect}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className={`rounded-lg border border-l-[3px] p-2.5 mb-1.5 cursor-pointer transition-all ${borderColorClass} ${
-          isSelected ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50' : `${bgColorClass} hover:brightness-95`
+        className={`rounded border border-l-2 p-1.5 mb-1 cursor-pointer transition-all ${borderColorClass} ${
+          isSelected ? 'border-blue-500 ring-1 ring-blue-200 bg-blue-50' : `${bgColorClass} hover:brightness-95`
         }`}
       >
-        <div className="flex justify-between items-center mb-1">
-          <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${dotColorClass}`} />
-            <span className="font-bold text-sm">{getMatchLabel(match)}</span>
-            <span className="text-xs text-gray-500">C{assignment.courtId} · {scheduledTime}</span>
-            {isLate && <span className="text-[10px] text-yellow-600 font-semibold">(late)</span>}
+        <div className="flex justify-between items-center mb-0.5">
+          <div className="flex items-center gap-1">
+            <span className={`w-1.5 h-1.5 rounded-full ${dotColorClass}`} />
+            <span className="font-medium text-xs text-gray-700">{getMatchLabel(match)}</span>
+            <span className="text-[10px] text-gray-500">C{assignment.courtId} · {scheduledTime}</span>
+            {matchState?.postponed && <span className="text-[9px] text-orange-600 font-medium">(postponed)</span>}
+            {isLate && !matchState?.postponed && <span className="text-[9px] text-yellow-600 font-medium">(late)</span>}
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-0.5">
             {isCalled ? (
               <>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleStart(); }}
-                  disabled={updating}
-                  className="px-2.5 py-1 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 disabled:bg-gray-400"
+                  onClick={(e) => { e.stopPropagation(); setShowCourtDialog(true); }}
+                  disabled={updating || !allPlayersConfirmed}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    allPlayersConfirmed
+                      ? 'bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                  title={!allPlayersConfirmed ? `Waiting for: ${missingPlayers.map(id => playerNames.get(id) || id).join(', ')}` : 'Start match'}
                 >
                   Start
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleUndo(); }}
                   disabled={updating}
-                  className="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs hover:bg-gray-300 disabled:bg-gray-100"
+                  className="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] hover:bg-gray-300 disabled:bg-gray-100"
                 >
                   Undo
                 </button>
@@ -340,43 +403,170 @@ function UpNextCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); handleCall(); }}
                   disabled={updating || light !== 'green'}
-                  className={`px-2.5 py-1 rounded text-xs font-semibold ${
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                     light === 'green'
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400'
+                      ? 'bg-gray-700 text-white hover:bg-gray-800 disabled:bg-gray-400'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
                   Call
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShowDelayDialog(true); }}
+                  onClick={(e) => { e.stopPropagation(); handlePostpone(); }}
                   disabled={updating}
-                  className="px-2.5 py-1 bg-yellow-500 text-white rounded text-xs font-semibold hover:bg-yellow-600 disabled:bg-gray-400"
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    matchState?.postponed
+                      ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  }`}
                 >
-                  Delay
+                  {matchState?.postponed ? 'Restore' : 'Postpone'}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowEditDialog(true); }}
+                  disabled={updating}
+                  className="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] hover:bg-gray-300 disabled:bg-gray-100"
+                >
+                  Edit
                 </button>
               </>
             )}
           </div>
         </div>
-        <div className="text-xs text-gray-700 truncate">{sideANames} vs {sideBNames}</div>
+        {/* Player names - clickable for check-in when called */}
+        {isCalled && onConfirmPlayer ? (
+          <div className="flex items-center gap-1 flex-wrap text-[10px]">
+            <span className="flex items-center gap-0.5">
+              {sideAPlayers.map((p, i) => {
+                const isConfirmed = confirmations[p.id] || false;
+                return (
+                  <span key={p.id} className="flex items-center">
+                    {i > 0 && <span className="mx-0.5 text-gray-400">&</span>}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleConfirmPlayer(p.id); }}
+                      disabled={updating}
+                      className={`px-1 py-0.5 rounded transition-colors ${
+                        isConfirmed
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      title={isConfirmed ? `${p.name} confirmed` : `Click to confirm ${p.name}`}
+                    >
+                      {isConfirmed ? '✓ ' : ''}{p.name}
+                    </button>
+                    {p.delayCount > 0 && (
+                      <span className="ml-0.5 px-0.5 bg-yellow-100 text-yellow-700 rounded text-[8px] font-medium" title={`${p.delayCount} delay(s)`}>
+                        {p.delayCount}
+                      </span>
+                    )}
+                  </span>
+                );
+              })}
+            </span>
+            <span className="text-gray-400">vs</span>
+            <span className="flex items-center gap-0.5">
+              {sideBPlayers.map((p, i) => {
+                const isConfirmed = confirmations[p.id] || false;
+                return (
+                  <span key={p.id} className="flex items-center">
+                    {i > 0 && <span className="mx-0.5 text-gray-400">&</span>}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleConfirmPlayer(p.id); }}
+                      disabled={updating}
+                      className={`px-1 py-0.5 rounded transition-colors ${
+                        isConfirmed
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      title={isConfirmed ? `${p.name} confirmed` : `Click to confirm ${p.name}`}
+                    >
+                      {isConfirmed ? '✓ ' : ''}{p.name}
+                    </button>
+                    {p.delayCount > 0 && (
+                      <span className="ml-0.5 px-0.5 bg-yellow-100 text-yellow-700 rounded text-[8px] font-medium" title={`${p.delayCount} delay(s)`}>
+                        {p.delayCount}
+                      </span>
+                    )}
+                  </span>
+                );
+              })}
+            </span>
+          </div>
+        ) : (
+          <div className="text-[10px] text-gray-600 truncate flex items-center gap-1">
+            {hasDelayedPlayers ? (
+              <>
+                <span className="flex items-center gap-0.5">
+                  {sideAPlayers.map((p, i) => (
+                    <span key={p.id} className="flex items-center">
+                      {i > 0 && <span className="mx-0.5">&</span>}
+                      <span>{p.name}</span>
+                      {p.delayCount > 0 && (
+                        <span className="ml-0.5 px-0.5 bg-yellow-100 text-yellow-700 rounded text-[8px] font-medium" title={`${p.delayCount} delay(s)`}>
+                          {p.delayCount}
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </span>
+                <span className="text-gray-400">vs</span>
+                <span className="flex items-center gap-0.5">
+                  {sideBPlayers.map((p, i) => (
+                    <span key={p.id} className="flex items-center">
+                      {i > 0 && <span className="mx-0.5">&</span>}
+                      <span>{p.name}</span>
+                      {p.delayCount > 0 && (
+                        <span className="ml-0.5 px-0.5 bg-yellow-100 text-yellow-700 rounded text-[8px] font-medium" title={`${p.delayCount} delay(s)`}>
+                          {p.delayCount}
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </span>
+              </>
+            ) : (
+              <span>{sideANames} <span className="text-gray-400">vs</span> {sideBNames}</span>
+            )}
+          </div>
+        )}
 
-        {/* Inline tooltip on hover for yellow/red */}
-        {isHovered && trafficLight?.reason && light !== 'green' && (
-          <div className={`mt-1.5 px-2.5 py-1.5 rounded text-xs flex items-center gap-1.5 ${
-            light === 'yellow' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+        {/* Conflict reason - always visible for yellow/red */}
+        {trafficLight?.reason && light !== 'green' && (
+          <div className={`mt-1 px-1.5 py-0.5 rounded text-[9px] flex items-center gap-1 ${
+            light === 'yellow' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
           }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${dotColorClass}`} />
+            <span className={`w-1 h-1 rounded-full ${dotColorClass}`} />
             {trafficLight.reason}
           </div>
         )}
       </div>
 
-      {showDelayDialog && (
-        <DelayReasonDialog
+      {/* Edit Match Dialog */}
+      {showEditDialog && (
+        <EditMatchDialog
           matchName={getMatchLabel(match)}
-          onSubmit={handleDelayWithReason}
-          onCancel={() => setShowDelayDialog(false)}
+          sideAPlayers={sideAPlayersForEdit}
+          sideBPlayers={sideBPlayersForEdit}
+          availablePlayers={players}
+          onSubstitute={(oldPlayerId, newPlayerId) => {
+            onSubstitute?.(assignment.matchId, oldPlayerId, newPlayerId);
+          }}
+          onRemovePlayer={(playerId) => {
+            onRemovePlayer?.(assignment.matchId, playerId);
+          }}
+          onClose={() => setShowEditDialog(false)}
+          isSubmitting={updating}
+        />
+      )}
+
+      {showCourtDialog && config && (
+        <CourtSelectDialog
+          matchName={getMatchLabel(match)}
+          scheduledCourt={assignment.courtId}
+          courtCount={config.courtCount}
+          occupiedCourts={occupiedCourts}
+          onConfirm={handleStart}
+          onCancel={() => setShowCourtDialog(false)}
           isSubmitting={updating}
         />
       )}
@@ -426,33 +616,33 @@ function FinishedCard({
   return (
     <div
       onClick={onSelect}
-      className={`rounded-lg border p-2.5 mb-1.5 cursor-pointer transition-all ${
+      className={`rounded border p-1.5 mb-1 cursor-pointer transition-all ${
         isSelected
-          ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50'
+          ? 'border-blue-500 ring-1 ring-blue-200 bg-blue-50'
           : 'border-gray-200 bg-gray-50 hover:border-gray-300'
       }`}
     >
-      <div className="flex justify-between items-center mb-1">
-        <div className="flex items-center gap-1.5">
-          <span className="font-bold text-sm text-gray-500">{getMatchLabel(match)}</span>
-          <span className="text-xs text-gray-400">C{assignment.courtId}</span>
+      <div className="flex justify-between items-center mb-0.5">
+        <div className="flex items-center gap-1">
+          <span className="font-medium text-xs text-gray-500">{getMatchLabel(match)}</span>
+          <span className="text-[10px] text-gray-400">C{assignment.courtId}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {score && (
-            <span className="font-bold text-sm text-purple-600">
+            <span className="font-medium text-xs text-purple-600">
               {score.sideA}-{score.sideB}
             </span>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); handleUndo(); }}
             disabled={updating}
-            className="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs hover:bg-gray-300 disabled:bg-gray-100"
+            className="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] hover:bg-gray-300 disabled:bg-gray-100"
           >
             Undo
           </button>
         </div>
       </div>
-      <div className="text-xs text-gray-500 truncate">{sideANames} vs {sideBNames}</div>
+      <div className="text-[10px] text-gray-500 truncate">{sideANames} <span className="text-gray-400">vs</span> {sideBNames}</div>
     </div>
   );
 }
@@ -464,18 +654,41 @@ export function WorkflowPanel({
   config,
   currentSlot,
   onUpdateStatus,
+  onConfirmPlayer,
   selectedMatchId,
   onSelectMatch,
   trafficLights,
   playerNames,
+  players,
+  onSubstitute,
+  onRemovePlayer,
 }: WorkflowPanelProps) {
   const [activeTab, setActiveTab] = useState<'up_next' | 'finished'>('up_next');
 
   const matchMap = useMemo(() => new Map(matches.map((m) => [m.id, m])), [matches]);
   const calledIds = useMemo(() => new Set(matchesByStatus.called.map((a) => a.matchId)), [matchesByStatus.called]);
 
-  // Sort Up Next by: 1) called first, 2) traffic light (green > yellow > red), 3) time
-  const trafficPriority: Record<string, number> = { green: 0, yellow: 1, red: 2 };
+  // Compute player delay counts from all match states
+  const playerDelayCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    Object.values(matchStates).forEach(state => {
+      if (state.delayedPlayerId) {
+        const current = counts.get(state.delayedPlayerId) || 0;
+        counts.set(state.delayedPlayerId, current + 1);
+      }
+    });
+    return counts;
+  }, [matchStates]);
+
+  // Compute occupied courts (courts with in-progress matches)
+  const occupiedCourts = useMemo(() => {
+    return matchesByStatus.started.map((a) => {
+      // Use actualCourtId if set, otherwise use scheduled courtId
+      return matchStates[a.matchId]?.actualCourtId ?? a.courtId;
+    });
+  }, [matchesByStatus.started, matchStates]);
+
+  // Sort Up Next by: 1) called first, 2) time slot, 3) court number
   const upNextSorted = useMemo(() => {
     return [...matchesByStatus.called, ...matchesByStatus.scheduled].sort((a, b) => {
       // Called matches first
@@ -484,17 +697,13 @@ export function WorkflowPanel({
       if (aIsCalled && !bIsCalled) return -1;
       if (!aIsCalled && bIsCalled) return 1;
 
-      // Traffic light priority
-      if (!aIsCalled && !bIsCalled && trafficLights) {
-        const aLight = trafficLights.get(a.matchId)?.status || 'green';
-        const bLight = trafficLights.get(b.matchId)?.status || 'green';
-        const priorityDiff = trafficPriority[aLight] - trafficPriority[bLight];
-        if (priorityDiff !== 0) return priorityDiff;
-      }
+      // Sort by time slot
+      if (a.slotId !== b.slotId) return a.slotId - b.slotId;
 
-      return a.slotId - b.slotId;
+      // Then by court number
+      return a.courtId - b.courtId;
     });
-  }, [matchesByStatus.called, matchesByStatus.scheduled, calledIds, trafficLights]);
+  }, [matchesByStatus.called, matchesByStatus.scheduled, calledIds]);
 
   const finishedSorted = useMemo(() => {
     return [...matchesByStatus.finished].sort((a, b) => b.slotId - a.slotId);
@@ -507,15 +716,17 @@ export function WorkflowPanel({
   return (
     <div className="h-full flex overflow-hidden min-h-0">
       {/* In Progress Column */}
-      <div className="w-80 border-r border-gray-200 bg-white flex flex-col flex-shrink-0">
-        <div className="px-4 py-2.5 border-b border-gray-200 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500" />
-          <span className="font-semibold text-sm">In Progress</span>
-          <span className="text-xs text-gray-400">({matchesByStatus.started.length})</span>
+      <div className="w-64 border-r border-gray-200 flex flex-col flex-shrink-0">
+        <div className="px-2 py-1.5 border-b border-gray-200 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">In Progress</span>
+          </div>
+          <span className="text-[10px] text-gray-400">{matchesByStatus.started.length}</span>
         </div>
-        <div className="flex-1 overflow-auto p-2">
+        <div className="flex-1 overflow-auto p-1.5">
           {startedSorted.length === 0 ? (
-            <div className="text-center text-gray-400 text-xs py-4">No active matches</div>
+            <div className="text-center text-gray-400 text-[10px] py-4">No active matches</div>
           ) : (
             startedSorted.map((assignment) => (
               <InProgressCard
@@ -535,43 +746,33 @@ export function WorkflowPanel({
       </div>
 
       {/* Tabbed Up Next / Finished */}
-      <div className="flex-1 bg-white flex flex-col min-w-0">
-        <div className="flex border-b border-gray-200 flex-shrink-0">
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex items-center gap-1 px-2 py-1.5 border-b border-gray-200 flex-shrink-0">
           <button
             onClick={() => setActiveTab('up_next')}
-            className={`px-4 py-2.5 text-sm font-semibold flex items-center gap-1.5 border-b-2 transition-colors ${
+            className={`px-2 py-0.5 text-xs rounded transition-colors ${
               activeTab === 'up_next'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-400 hover:text-gray-600'
+                ? 'bg-gray-700 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Up Next
-            <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-              activeTab === 'up_next' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
-            }`}>
-              {upNextSorted.length}
-            </span>
+            Up Next ({upNextSorted.length})
           </button>
           <button
             onClick={() => setActiveTab('finished')}
-            className={`px-4 py-2.5 text-sm font-semibold flex items-center gap-1.5 border-b-2 transition-colors ${
+            className={`px-2 py-0.5 text-xs rounded transition-colors ${
               activeTab === 'finished'
-                ? 'border-purple-500 text-purple-600'
-                : 'border-transparent text-gray-400 hover:text-gray-600'
+                ? 'bg-gray-700 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Finished
-            <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-              activeTab === 'finished' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'
-            }`}>
-              {finishedSorted.length}
-            </span>
+            Finished ({finishedSorted.length})
           </button>
         </div>
-        <div className="flex-1 overflow-auto p-2">
+        <div className="flex-1 overflow-auto p-1.5">
           {activeTab === 'up_next' && (
             upNextSorted.length === 0 ? (
-              <div className="text-center text-gray-400 text-xs py-4">No matches pending</div>
+              <div className="text-center text-gray-400 text-[10px] py-4">No matches pending</div>
             ) : (
               upNextSorted.map((assignment) => (
                 <UpNextCard
@@ -580,6 +781,7 @@ export function WorkflowPanel({
                   match={matchMap.get(assignment.matchId)}
                   matchState={matchStates[assignment.matchId]}
                   playerNames={playerNames}
+                  playerDelayCounts={playerDelayCounts}
                   trafficLight={trafficLights?.get(assignment.matchId)}
                   isSelected={selectedMatchId === assignment.matchId}
                   isCalled={calledIds.has(assignment.matchId)}
@@ -587,6 +789,11 @@ export function WorkflowPanel({
                   currentSlot={currentSlot}
                   onSelect={() => onSelectMatch?.(assignment.matchId)}
                   onUpdateStatus={onUpdateStatus}
+                  onConfirmPlayer={onConfirmPlayer}
+                  players={players}
+                  onSubstitute={onSubstitute}
+                  onRemovePlayer={onRemovePlayer}
+                  occupiedCourts={occupiedCourts}
                 />
               ))
             )

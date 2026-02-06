@@ -46,7 +46,15 @@
       "Bash(cmd.exe /c \"c:\\\\Users\\\\avlis\\\\OneDrive\\\\Documentos\\\\vsCode\\\\schedulingalg\\\\src\\\\venv\\\\Scripts\\\\python.exe -m pytest c:\\\\Users\\\\avlis\\\\OneDrive\\\\Documentos\\\\vsCode\\\\schedulingalg\\\\src\\\\tests\\\\test_scheduler_core.py -v\" 2>&1:*)",
       "Bash(powershell.exe:*)",
       "Bash(del:*)",
-      "Bash(npm --prefix c:/Users/avlis/OneDrive/Documentos/vsCode/schedulingalg/frontend run build)"
+      "Bash(npm --prefix c:/Users/avlis/OneDrive/Documentos/vsCode/schedulingalg/frontend run build)",
+      "WebSearch",
+      "Bash(xargs:*)",
+      "Bash(cd:*)",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "Bash(SHELL=/bin/bash /bin/bash -c 'cd \"/Users/kylewong/Documents/Visual Studio/cp-sat-scheduling-engine/frontend\" && ./node_modules/.bin/tsc --noEmit 2>&1 | head -80':*)",
+      "Bash(SHELL=/bin/bash /bin/bash -c:*)",
+      "Bash(pushd:*)",
+      "Bash(popd:*)"
     ]
   }
 }

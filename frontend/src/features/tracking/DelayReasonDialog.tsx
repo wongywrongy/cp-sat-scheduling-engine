@@ -5,9 +5,15 @@
 import { useState } from 'react';
 import type { DelayReason } from '../../api/dto';
 
+interface PlayerInfo {
+  id: string;
+  name: string;
+}
+
 interface DelayReasonDialogProps {
   matchName: string;
-  onSubmit: (reason: DelayReason, notes?: string) => void;
+  players?: PlayerInfo[]; // Optional: list of players to select who caused the delay
+  onSubmit: (reason: DelayReason, notes?: string, delayedPlayerId?: string) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -21,18 +27,23 @@ const DELAY_REASONS: { value: DelayReason; label: string; description: string }[
 
 export function DelayReasonDialog({
   matchName,
+  players,
   onSubmit,
   onCancel,
   isSubmitting = false,
 }: DelayReasonDialogProps) {
   const [selectedReason, setSelectedReason] = useState<DelayReason | null>(null);
   const [notes, setNotes] = useState('');
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const handleSubmit = () => {
     if (selectedReason) {
-      onSubmit(selectedReason, notes || undefined);
+      onSubmit(selectedReason, notes || undefined, selectedPlayerId || undefined);
     }
   };
+
+  // Show player selector for "player_not_present" if players are provided
+  const showPlayerSelector = selectedReason === 'player_not_present' && players && players.length > 0;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -76,6 +87,33 @@ export function DelayReasonDialog({
               className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none"
               autoFocus
             />
+          </div>
+        )}
+
+        {showPlayerSelector && (
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700 mb-1.5">Which player is missing?</div>
+            <div className="space-y-1.5">
+              {players!.map((player) => (
+                <label
+                  key={player.id}
+                  className={`flex items-center gap-2 p-2 rounded border cursor-pointer transition-colors ${
+                    selectedPlayerId === player.id
+                      ? 'border-yellow-500 bg-yellow-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="delayedPlayer"
+                    value={player.id}
+                    checked={selectedPlayerId === player.id}
+                    onChange={() => setSelectedPlayerId(player.id)}
+                  />
+                  <span className="text-sm text-gray-900">{player.name}</span>
+                </label>
+              ))}
+            </div>
           </div>
         )}
 

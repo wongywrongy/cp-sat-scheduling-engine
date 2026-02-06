@@ -378,7 +378,7 @@ export function SchedulePage() {
           </div>
 
           {/* Log - sidebar */}
-          <div className="w-56 flex-shrink-0 bg-white rounded border border-gray-200 flex flex-col overflow-hidden">
+          <div className="w-72 flex-shrink-0 bg-white rounded border border-gray-200 flex flex-col overflow-hidden">
             <div className="px-2 py-1.5 border-b border-gray-200 flex-shrink-0">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Log</span>
             </div>

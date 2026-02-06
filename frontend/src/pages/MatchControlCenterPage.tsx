@@ -1,8 +1,8 @@
 /**
- * Match Control Center Page - Per Wireframe Design (Tailwind CSS)
+ * Match Control Center Page - Unified Design (matches Schedule page style)
  * Layout: Status Bar → Gantt Chart → Workflow Panel (In Progress | Tabbed Center | Details) → Suggested Next Dock
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveTracking } from '../hooks/useLiveTracking';
 import { useLiveOperations } from '../hooks/useLiveOperations';
@@ -77,15 +77,64 @@ export function MatchControlCenterPage() {
     }).length;
   }, [liveOps.schedule, liveOps.matchStates, currentSlot]);
 
+  // Get updateMatch from store
+  const updateMatch = useAppStore((state) => state.updateMatch);
+
+  // Handle player substitution
+  const handleSubstitute = useCallback((
+    matchId: string,
+    oldPlayerId: string,
+    newPlayerId: string
+  ) => {
+    const match = liveOps.matches.find(m => m.id === matchId);
+    if (!match) return;
+
+    // Replace the player in sideA or sideB
+    const newSideA = (match.sideA || []).map(id => id === oldPlayerId ? newPlayerId : id);
+    const newSideB = (match.sideB || []).map(id => id === oldPlayerId ? newPlayerId : id);
+
+    updateMatch(matchId, {
+      sideA: newSideA,
+      sideB: newSideB,
+    });
+
+    console.log(`Substituted player ${oldPlayerId} with ${newPlayerId} in match ${matchId}`);
+  }, [liveOps.matches, updateMatch]);
+
+  // Handle player removal from match
+  const handleRemovePlayer = useCallback((
+    matchId: string,
+    playerId: string
+  ) => {
+    const match = liveOps.matches.find(m => m.id === matchId);
+    if (!match) return;
+
+    // Remove the player from sideA or sideB
+    const newSideA = (match.sideA || []).filter(id => id !== playerId);
+    const newSideB = (match.sideB || []).filter(id => id !== playerId);
+
+    updateMatch(matchId, {
+      sideA: newSideA,
+      sideB: newSideB,
+    });
+
+    console.log(`Removed player ${playerId} from match ${matchId}`);
+  }, [liveOps.matches, updateMatch]);
+
   // No schedule state
   if (!liveTracking.schedule) {
     return (
-      <div className="p-3">
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
-          <h3 className="font-semibold mb-1">No Schedule Generated</h3>
-          <p className="text-sm">
-            Generate a schedule first on the{' '}
-            <Link to="/schedule" className="underline hover:text-yellow-900">Schedule page</Link>
+      <div className="w-full h-[calc(100vh-56px)] flex flex-col px-2 py-1 gap-2">
+        <div className="flex-1 flex flex-col items-center justify-center bg-white rounded border border-gray-200">
+          <div className="text-gray-400 mb-3">
+            <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <p className="text-sm text-gray-600 mb-1">No schedule generated.</p>
+          <p className="text-xs text-gray-500">
+            Generate a schedule on the{' '}
+            <Link to="/schedule" className="text-blue-600 hover:underline">Schedule page</Link>
           </p>
         </div>
       </div>
@@ -94,93 +143,85 @@ export function MatchControlCenterPage() {
 
   if (!liveTracking.config || !liveOps.config || !liveOps.schedule) {
     return (
-      <div className="p-3">
-        <div className="text-gray-500">Loading...</div>
+      <div className="w-full h-[calc(100vh-56px)] flex items-center justify-center">
+        <div className="text-gray-500 text-sm">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)] bg-gray-50 overflow-hidden">
-      {/* Status Bar */}
-      <div className="flex justify-between items-center px-5 py-2 bg-white border-b border-gray-200 flex-shrink-0">
-        <div className="flex items-center gap-4 text-sm">
-          <span className="font-semibold">{stats?.percentage || 0}% complete</span>
-          <span className="text-gray-500">
-            {stats?.finished || 0}/{stats?.total || 0} matches
-          </span>
-          {(stats?.inProgress || 0) > 0 && (
-            <span className="text-gray-500">{stats.inProgress} active</span>
-          )}
-          {delayedCount > 0 && (
-            <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-xs font-medium">
-              {delayedCount} running late
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1 text-gray-500">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            Ready
-          </span>
-          <span className="flex items-center gap-1 text-gray-500">
-            <span className="w-2 h-2 rounded-full bg-yellow-500" />
-            Resting
-          </span>
-          <span className="flex items-center gap-1 text-gray-500">
-            <span className="w-2 h-2 rounded-full bg-red-500" />
-            Blocked
-          </span>
-          <span className="flex items-center gap-1 text-gray-500">
-            <span className="w-2.5 h-2.5 rounded-sm border-2 border-yellow-500 bg-transparent" />
-            Late
-          </span>
-          <button
-            onClick={liveOps.triggerReoptimize}
-            disabled={liveOps.isReoptimizing}
-            className="px-3.5 py-1.5 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-wait"
-          >
-            {liveOps.isReoptimizing ? 'Optimizing...' : 'Re-optimize'}
-          </button>
-        </div>
-      </div>
+    <div className="w-full h-[calc(100vh-56px)] flex flex-col px-2 py-1 gap-2">
+      {/* Main content area */}
+      <div className="flex-1 min-h-0 flex gap-2">
+        {/* Left side - Gantt + Workflow */}
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
+          {/* Status + Gantt Chart panel */}
+          <div className="bg-white rounded border border-gray-200 flex flex-col overflow-hidden flex-shrink-0">
+            {/* Header with status metrics and actions */}
+            <div className="px-2 py-1.5 border-b border-gray-200 flex items-center justify-between">
+              <div className="flex items-center gap-3 text-xs">
+                <span className="font-medium text-gray-700">{stats?.percentage || 0}%</span>
+                <span className="text-gray-500">
+                  {stats?.finished || 0}/{stats?.total || 0} matches
+                </span>
+                {(stats?.inProgress || 0) > 0 && (
+                  <span className="text-green-600">{stats.inProgress} active</span>
+                )}
+                {delayedCount > 0 && (
+                  <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                    {delayedCount} late
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={liveOps.triggerReoptimize}
+                disabled={liveOps.isReoptimizing}
+                className="px-2 py-1 bg-gray-700 text-white rounded text-[10px] font-medium hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-wait"
+              >
+                {liveOps.isReoptimizing ? 'Optimizing...' : 'Re-optimize'}
+              </button>
+            </div>
 
-      {/* Gantt Chart */}
-      <div className="px-5 py-3 bg-white border-b border-gray-200 overflow-x-auto flex-shrink-0">
-        <GanttChart
-          schedule={liveOps.schedule}
-          matches={liveOps.matches}
-          matchStates={liveOps.matchStates}
-          config={liveOps.config}
-          currentSlot={currentSlot}
-          selectedMatchId={selectedMatchId}
-          onMatchSelect={setSelectedMatchId}
-          trafficLights={trafficLights}
-        />
-      </div>
+            {/* Gantt Chart */}
+            <div className="p-2 overflow-x-auto">
+              <GanttChart
+                schedule={liveOps.schedule}
+                matches={liveOps.matches}
+                matchStates={liveOps.matchStates}
+                config={liveOps.config}
+                currentSlot={currentSlot}
+                selectedMatchId={selectedMatchId}
+                onMatchSelect={setSelectedMatchId}
+                impactedMatchIds={selectedAnalysis?.directlyImpacted}
+              />
+            </div>
+          </div>
 
-      {/* Main Content: Workflow Panel + Match Details */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Workflow Panel (In Progress + Tabbed Up Next/Finished) */}
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <WorkflowPanel
-            matchesByStatus={liveTracking.matchesByStatus}
-            matches={liveTracking.matches}
-            matchStates={liveTracking.matchStates}
-            config={liveTracking.config}
-            currentSlot={currentSlot}
-            onUpdateStatus={liveTracking.updateMatchStatus}
-            selectedMatchId={selectedMatchId}
-            onSelectMatch={setSelectedMatchId}
-            trafficLights={trafficLights}
-            playerNames={playerNames}
-          />
+          {/* Workflow Panel */}
+          <div className="flex-1 min-h-0 bg-white rounded border border-gray-200 flex flex-col overflow-hidden">
+            <WorkflowPanel
+              matchesByStatus={liveTracking.matchesByStatus}
+              matches={liveTracking.matches}
+              matchStates={liveTracking.matchStates}
+              config={liveTracking.config}
+              currentSlot={currentSlot}
+              onUpdateStatus={liveTracking.updateMatchStatus}
+              onConfirmPlayer={liveTracking.confirmPlayer}
+              selectedMatchId={selectedMatchId}
+              onSelectMatch={setSelectedMatchId}
+              trafficLights={trafficLights}
+              playerNames={playerNames}
+              players={players}
+              onSubstitute={handleSubstitute}
+              onRemovePlayer={handleRemovePlayer}
+            />
+          </div>
         </div>
 
-        {/* Match Details Sidebar */}
-        <div className="w-72 bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
-          <div className="px-4 py-2.5 border-b border-gray-200">
-            <span className="font-bold text-sm text-gray-500 uppercase tracking-wide">
+        {/* Right side - Match Details sidebar */}
+        <div className="w-56 flex-shrink-0 bg-white rounded border border-gray-200 flex flex-col overflow-hidden">
+          <div className="px-2 py-1.5 border-b border-gray-200 flex-shrink-0">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
               Match Details
             </span>
           </div>
@@ -212,9 +253,9 @@ export function MatchControlCenterPage() {
 
       {liveTracking.isLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-4">
-            <div className="w-8 h-8 border-3 border-gray-200 border-t-purple-600 rounded-full animate-spin mx-auto" />
-            <p className="text-gray-600 mt-2 text-sm">Loading...</p>
+          <div className="bg-white rounded border border-gray-200 p-4">
+            <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin mx-auto" />
+            <p className="text-gray-600 mt-2 text-xs">Loading...</p>
           </div>
         </div>
       )}

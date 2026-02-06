@@ -137,7 +137,7 @@ export function MatchStatusCard({
     }
   };
 
-  const handleDelayWithReason = async (reason: DelayReason, notes?: string) => {
+  const handleDelayWithReason = async (reason: DelayReason, notes?: string, delayedPlayerId?: string) => {
     if (updating) return;
     setUpdating(true);
     try {
@@ -147,6 +147,7 @@ export function MatchStatusCard({
       await onUpdateStatus(assignment.matchId, newStatus as MatchStateDTO['status'], {
         delayed: true,
         delayReason: reason,
+        delayedPlayerId,
         notes: notes ? `Delayed at ${timestamp}: ${notes}` : `Delayed at ${timestamp}`,
       });
       setShowDelayDialog(false);
@@ -156,6 +157,13 @@ export function MatchStatusCard({
       setUpdating(false);
     }
   };
+
+  // Get player info for delay dialog
+  const allPlayerIds = [...(match.sideA || []), ...(match.sideB || [])];
+  const playerInfoList = allPlayerIds.map(id => ({
+    id,
+    name: getPlayerNames([id]).join(''),
+  }));
 
   const handleTogglePin = async () => {
     if (updating) return;
@@ -351,6 +359,7 @@ export function MatchStatusCard({
       {showDelayDialog && (
         <DelayReasonDialog
           matchName={match.eventRank || 'Match'}
+          players={playerInfoList}
           onSubmit={handleDelayWithReason}
           onCancel={() => setShowDelayDialog(false)}
           isSubmitting={updating}

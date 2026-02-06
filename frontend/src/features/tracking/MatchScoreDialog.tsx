@@ -1,8 +1,8 @@
 /**
  * Match Score Dialog Component
- * Modal dialog for entering match scores when finishing a match
+ * Simple, compact score entry dialog
  */
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface MatchScoreDialogProps {
   matchName: string;
@@ -23,100 +23,100 @@ export function MatchScoreDialog({
 }: MatchScoreDialogProps) {
   const [scoreA, setScoreA] = useState<string>('');
   const [scoreB, setScoreB] = useState<string>('');
-  const [notes, setNotes] = useState('');
+  const inputARef = useRef<HTMLInputElement>(null);
+  const inputBRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputARef.current?.focus();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const sideAScore = parseInt(scoreA);
-    const sideBScore = parseInt(scoreB);
+    const sideAScore = parseInt(scoreA) || 0;
+    const sideBScore = parseInt(scoreB) || 0;
 
-    if (isNaN(sideAScore) || isNaN(sideBScore)) {
-      alert('Please enter valid scores for both sides');
-      return;
-    }
-
-    if (sideAScore < 0 || sideBScore < 0) {
-      alert('Scores must be non-negative');
-      return;
-    }
-
-    onSubmit({ sideA: sideAScore, sideB: sideBScore }, notes);
+    onSubmit({ sideA: sideAScore, sideB: sideBScore }, '');
   };
+
+  // Auto-advance to second input when first has value
+  const handleScoreAChange = (value: string) => {
+    setScoreA(value);
+    if (value.length >= 2) {
+      inputBRef.current?.focus();
+    }
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent, field: 'A' | 'B') => {
+    if (e.key === 'Enter' && field === 'A' && scoreA) {
+      e.preventDefault();
+      inputBRef.current?.focus();
+    }
+    if (e.key === 'Escape') {
+      onCancel();
+    }
+  };
+
+  const canSubmit = scoreA !== '' && scoreB !== '';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded shadow max-w-md w-full mx-4">
+      <div className="bg-white rounded-lg shadow-xl w-72">
         {/* Header */}
-        <div className="bg-purple-600 text-white px-4 py-2 rounded-t">
-          <h3 className="text-base font-semibold">Finish Match: {matchName}</h3>
+        <div className="px-3 py-2 border-b border-gray-200">
+          <h3 className="text-sm font-semibold text-gray-900">{matchName}</h3>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-3">
-          {/* Side A Score */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {sideAName || 'Side A'} Score
-            </label>
-            <input
-              type="number"
-              value={scoreA}
-              onChange={(e) => setScoreA(e.target.value)}
-              className="w-full px-2 py-1.5 border border-gray-300 rounded-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="Enter score"
-              min="0"
-              required
-              autoFocus
-            />
+        {/* Score Entry */}
+        <form onSubmit={handleSubmit} className="p-3">
+          {/* Player names */}
+          <div className="flex justify-between text-[10px] text-gray-500 mb-1 px-1">
+            <span className="truncate max-w-[45%]">{sideAName}</span>
+            <span className="truncate max-w-[45%] text-right">{sideBName}</span>
           </div>
 
-          {/* Side B Score */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {sideBName || 'Side B'} Score
-            </label>
+          {/* Score inputs side by side */}
+          <div className="flex items-center gap-2 mb-3">
             <input
+              ref={inputARef}
+              type="number"
+              value={scoreA}
+              onChange={(e) => handleScoreAChange(e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, 'A')}
+              className="flex-1 px-2 py-2 text-center text-lg font-semibold border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="0"
+              min="0"
+            />
+            <span className="text-gray-400 text-lg font-medium">-</span>
+            <input
+              ref={inputBRef}
               type="number"
               value={scoreB}
               onChange={(e) => setScoreB(e.target.value)}
-              className="w-full px-2 py-1.5 border border-gray-300 rounded-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="Enter score"
+              onKeyDown={(e) => handleKeyDown(e, 'B')}
+              className="flex-1 px-2 py-2 text-center text-lg font-semibold border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="0"
               min="0"
-              required
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes (Optional)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-2 py-1.5 border border-gray-300 rounded-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="Add any notes about the match..."
-              rows={2}
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={onCancel}
               disabled={isSubmitting}
-              className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-sm text-sm hover:bg-gray-50 disabled:opacity-50 font-medium"
+              className="flex-1 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="flex-1 px-3 py-1.5 bg-purple-600 text-white rounded-sm text-sm hover:bg-purple-700 disabled:bg-gray-400 font-medium"
+              disabled={isSubmitting || !canSubmit}
+              className="flex-1 px-3 py-1.5 text-sm text-white bg-purple-600 rounded hover:bg-purple-700 disabled:bg-gray-300 font-medium"
             >
-              {isSubmitting ? 'Saving...' : 'Save & Finish'}
+              {isSubmitting ? 'Saving...' : 'Done'}
             </button>
           </div>
         </form>

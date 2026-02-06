@@ -77,8 +77,28 @@ export function useLiveTracking() {
 
   const loadMatchStates = useCallback(async () => {
     try {
-      const states = await apiClient.getMatchStates();
-      setMatchStates(states);
+      const backendStates = await apiClient.getMatchStates();
+      const localStates = useAppStore.getState().matchStates;
+
+      // Merge backend with local, preserving local-only fields
+      const mergedStates: Record<string, MatchStateDTO> = {};
+
+      for (const [matchId, backendState] of Object.entries(backendStates)) {
+        const localState = localStates[matchId];
+        mergedStates[matchId] = {
+          ...backendState,
+          postponed: backendState.postponed ?? localState?.postponed,
+          playerConfirmations: backendState.playerConfirmations ?? localState?.playerConfirmations,
+        };
+      }
+
+      for (const [matchId, localState] of Object.entries(localStates)) {
+        if (!mergedStates[matchId]) {
+          mergedStates[matchId] = localState;
+        }
+      }
+
+      setMatchStates(mergedStates);
     } catch (error) {
       console.error('Failed to load match states:', error);
     }
@@ -86,8 +106,31 @@ export function useLiveTracking() {
 
   const syncMatchStates = useCallback(async () => {
     try {
-      const states = await apiClient.getMatchStates();
-      setMatchStates(states);
+      const backendStates = await apiClient.getMatchStates();
+      const localStates = useAppStore.getState().matchStates;
+
+      // Merge backend with local, preserving local-only fields
+      const mergedStates: Record<string, MatchStateDTO> = {};
+
+      // Start with all backend states
+      for (const [matchId, backendState] of Object.entries(backendStates)) {
+        const localState = localStates[matchId];
+        mergedStates[matchId] = {
+          ...backendState,
+          // Preserve local-only fields if backend doesn't have them
+          postponed: backendState.postponed ?? localState?.postponed,
+          playerConfirmations: backendState.playerConfirmations ?? localState?.playerConfirmations,
+        };
+      }
+
+      // Also include any local states that aren't in backend
+      for (const [matchId, localState] of Object.entries(localStates)) {
+        if (!mergedStates[matchId]) {
+          mergedStates[matchId] = localState;
+        }
+      }
+
+      setMatchStates(mergedStates);
       setLastSynced(new Date().toISOString());
     } catch (error) {
       console.error('Failed to sync match states:', error);
@@ -100,7 +143,9 @@ export function useLiveTracking() {
     additionalData?: Partial<MatchStateDTO>
   ) => {
     try {
-      const currentState = matchStates[matchId] || { matchId, status: 'scheduled' };
+      // Get fresh state from store to avoid stale closures
+      const freshMatchStates = useAppStore.getState().matchStates;
+      const currentState = freshMatchStates[matchId] || { matchId, status: 'scheduled' };
       const currentStatus = currentState.status || 'scheduled';
 
       // Validate state transition
@@ -115,27 +160,36 @@ export function useLiveTracking() {
         hour12: false
       });
 
-      const updates: Partial<MatchStateDTO> = {
+      const newState: MatchStateDTO = {
         ...currentState,
+        matchId,
         status,
         ...additionalData,
       };
 
       // Set timestamps based on status transitions
       if (status === 'started' && !currentState.actualStartTime) {
-        updates.actualStartTime = now;
+        newState.actualStartTime = now;
       }
       if (status === 'finished' && !currentState.actualEndTime) {
-        updates.actualEndTime = now;
+        newState.actualEndTime = now;
       }
 
-      const updated = await apiClient.updateMatchState(matchId, updates);
-      setMatchState(matchId, updated);
+      // Update local state immediately for responsive UI
+      setMatchState(matchId, newState);
+
+      // Sync to backend
+      try {
+        await apiClient.updateMatchState(matchId, newState);
+      } catch (apiError) {
+        console.error('Failed to sync match status to backend:', apiError);
+        // Don't revert - local state is still valid for this session
+      }
     } catch (error) {
       console.error('Failed to update match status:', error);
       throw error;
     }
-  }, [matchStates, setMatchState]);
+  }, [setMatchState]);
 
   const setMatchScore = useCallback(async (
     matchId: string,
@@ -157,6 +211,46 @@ export function useLiveTracking() {
       setMatchState(matchId, updated);
     } catch (error) {
       console.error('Failed to set match score:', error);
+      throw error;
+    }
+  }, [setMatchState]);
+
+  /**
+   * Confirm a player has arrived at the court for a called match
+   */
+  const confirmPlayer = useCallback(async (
+    matchId: string,
+    playerId: string,
+    confirmed: boolean
+  ) => {
+    try {
+      // Get fresh state from store to avoid stale closures
+      const freshMatchStates = useAppStore.getState().matchStates;
+      const currentState = freshMatchStates[matchId] || { matchId, status: 'called' };
+      const currentConfirmations = currentState.playerConfirmations || {};
+
+      const updatedConfirmations = {
+        ...currentConfirmations,
+        [playerId]: confirmed,
+      };
+
+      const newState: MatchStateDTO = {
+        ...currentState,
+        playerConfirmations: updatedConfirmations,
+      };
+
+      // Update local state immediately for responsive UI
+      setMatchState(matchId, newState);
+
+      // Sync to backend
+      try {
+        await apiClient.updateMatchState(matchId, newState);
+      } catch (apiError) {
+        console.error('Failed to sync player confirmation to backend:', apiError);
+        // Don't revert - local state is still valid for this session
+      }
+    } catch (error) {
+      console.error('Failed to confirm player:', error);
       throw error;
     }
   }, [setMatchState]);
@@ -230,6 +324,7 @@ export function useLiveTracking() {
     matchesByStatus,
     updateMatchStatus,
     setMatchScore,
+    confirmPlayer,
     exportStates,
     importStates,
     resetStates,

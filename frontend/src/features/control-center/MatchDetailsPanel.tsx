@@ -1,6 +1,5 @@
 /**
- * Match Details Panel - Per Wireframe Design (Tailwind CSS)
- * Shows selected match details with traffic light status, players, timing, and impacted matches
+ * Match Details Panel - Shows selected match details
  */
 import { useState, useEffect, useMemo } from 'react';
 import type { ImpactAnalysis } from '../../hooks/useLiveOperations';
@@ -84,87 +83,85 @@ export function MatchDetailsPanel({
   // Get player names
   const sideANames = (match.sideA || []).map((id) => playerNames.get(id) || id);
   const sideBNames = (match.sideB || []).map((id) => playerNames.get(id) || id);
+  const allPlayerIds = [...(match.sideA || []), ...(match.sideB || [])];
 
   return (
-    <div className="h-full overflow-auto p-4">
+    <div className="h-full overflow-auto p-2">
       {/* Header */}
-      <div className="mb-4">
-        <div className="text-xl font-extrabold text-gray-900 mb-0.5">
+      <div className="mb-3">
+        <div className="text-sm font-bold text-gray-700 mb-0.5">
           {getMatchLabel(match)}
         </div>
-        <div className="text-xs text-gray-500">
-          C{assignment.courtId} · Scheduled {scheduledTime}
+        <div className="text-[10px] text-gray-500">
+          C{assignment.courtId} · {scheduledTime}
         </div>
       </div>
 
       {/* Status badge */}
       {status === 'scheduled' && (
-        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4 text-xs font-semibold ${
+        <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded mb-3 text-[10px] font-medium ${
           light === 'green'
             ? 'bg-green-50 text-green-700'
             : light === 'yellow'
               ? 'bg-yellow-50 text-yellow-700'
               : 'bg-red-50 text-red-700'
         }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${
+          <span className={`w-1 h-1 rounded-full ${
             light === 'green' ? 'bg-green-500' : light === 'yellow' ? 'bg-yellow-500' : 'bg-red-500'
           }`} />
-          {light === 'green' ? 'Ready to call' : light === 'yellow' ? 'Resting' : 'Blocked'}
+          {light === 'green' ? 'Ready' : light === 'yellow' ? 'Resting' : 'Blocked'}
         </div>
       )}
       {status === 'called' && (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4 text-xs font-semibold bg-blue-50 text-blue-700">
-          Called to court
+        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded mb-3 text-[10px] font-medium bg-blue-50 text-blue-700">
+          Called
         </div>
       )}
       {status === 'started' && (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4 text-xs font-semibold bg-green-50 text-green-700">
+        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded mb-3 text-[10px] font-medium bg-green-50 text-green-700">
           In Progress
         </div>
       )}
       {status === 'finished' && (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4 text-xs font-semibold bg-purple-50 text-purple-700">
-          Finished {matchState?.score ? `— ${matchState.score.sideA}-${matchState.score.sideB}` : ''}
+        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded mb-3 text-[10px] font-medium bg-purple-50 text-purple-700">
+          Done {matchState?.score ? `${matchState.score.sideA}-${matchState.score.sideB}` : ''}
         </div>
       )}
 
       {/* Reason for yellow/red */}
       {status === 'scheduled' && trafficLight?.reason && light !== 'green' && (
-        <div className={`px-3 py-2 rounded-lg text-xs mb-4 leading-relaxed ${
+        <div className={`px-2 py-1.5 rounded text-[10px] mb-3 ${
           light === 'yellow'
-            ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
-            : 'bg-red-50 border border-red-200 text-red-800'
+            ? 'bg-yellow-50 border border-yellow-200 text-yellow-700'
+            : 'bg-red-50 border border-red-200 text-red-700'
         }`}>
           {trafficLight.reason}
         </div>
       )}
 
       {/* Players */}
-      <div className="mb-4">
-        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+      <div className="mb-3">
+        <div className="text-[9px] font-medium text-gray-500 uppercase tracking-wide mb-1">
           Players
         </div>
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">
-            A
-          </span>
-          <div className="text-sm font-medium">{sideANames.join(' & ')}</div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-5 h-5 rounded-full bg-pink-100 flex items-center justify-center text-[10px] font-bold text-pink-600">
-            B
-          </span>
-          <div className="text-sm font-medium">{sideBNames.join(' & ')}</div>
+        <div className="text-xs text-gray-700 space-y-0.5">
+          {sideANames.map((name, i) => (
+            <div key={i}>{name}</div>
+          ))}
+          <div className="text-[10px] text-gray-400">vs</div>
+          {sideBNames.map((name, i) => (
+            <div key={i}>{name}</div>
+          ))}
         </div>
       </div>
 
       {/* Timing (only for in_progress) */}
       {status === 'started' && (
-        <div className="mb-4">
-          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+        <div className="mb-3">
+          <div className="text-[9px] font-medium text-gray-500 uppercase tracking-wide mb-1">
             Timing
           </div>
-          <div className="flex justify-between text-sm mb-1">
+          <div className="flex justify-between text-xs">
             <span className="text-gray-500">Elapsed</span>
             <ElapsedTimer startTime={matchState?.actualStartTime} />
           </div>
@@ -174,27 +171,42 @@ export function MatchDetailsPanel({
       {/* Impacted Matches */}
       {analysis && analysis.directlyImpacted.length > 0 && (
         <div>
-          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-            Impacted Matches ({analysis.directlyImpacted.length})
+          <div className="text-[9px] font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+            Impacted ({analysis.directlyImpacted.length})
           </div>
-          {analysis.directlyImpacted.slice(0, 5).map((matchId) => {
+          {analysis.directlyImpacted.map((matchId) => {
             const impactedMatch = matchMap.get(matchId);
+            const currentPlayerIds = new Set(allPlayerIds);
+            const impactedPlayerIds = [
+              ...(impactedMatch?.sideA || []),
+              ...(impactedMatch?.sideB || []),
+            ];
+            const sharedPlayerIds = impactedPlayerIds.filter(id => currentPlayerIds.has(id));
+            const sharedPlayerNames = sharedPlayerIds.map(id => playerNames.get(id) || id);
+            const eventLabel = impactedMatch?.eventRank || getMatchLabel(impactedMatch, matchId);
+
             return (
               <div
                 key={matchId}
                 onClick={() => onSelectMatch?.(matchId)}
-                className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded mb-1 text-xs font-medium cursor-pointer hover:border-gray-300 flex justify-between items-center"
+                className="px-2 py-1.5 bg-gray-50 border border-gray-200 rounded mb-1 cursor-pointer hover:border-gray-300"
               >
-                <span>{getMatchLabel(impactedMatch, matchId)}</span>
-                <span className="text-gray-400">→</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-gray-700">{eventLabel}</span>
+                  <span className="text-gray-400 text-[10px]">→</span>
+                </div>
+                {sharedPlayerNames.length > 0 && (
+                  <div className="text-[10px] text-gray-500 mt-0.5">
+                    {sharedPlayerNames.map((name, i) => (
+                      <span key={i}>
+                        {name} plays{i < sharedPlayerNames.length - 1 ? ', ' : ''}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
-          {analysis.directlyImpacted.length > 5 && (
-            <div className="text-xs text-gray-400">
-              +{analysis.directlyImpacted.length - 5} more
-            </div>
-          )}
         </div>
       )}
     </div>

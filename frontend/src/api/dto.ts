@@ -110,15 +110,27 @@ export interface SetScore {
 // Delay reason options
 export type DelayReason = 'player_not_present' | 'injury' | 'court_issue' | 'other';
 
+// Player confirmation entry for tracking who caused a delay
+export interface PlayerDelayEntry {
+  matchId: string;
+  playerId: string;
+  reason: DelayReason;
+  timestamp: string;
+}
+
 // Match State (for Match Desk operations)
 export interface MatchStateDTO {
   matchId: string;
   status: 'scheduled' | 'called' | 'started' | 'finished';
   actualStartTime?: string;
   actualEndTime?: string;
+  actualCourtId?: number; // Override court if different from scheduled
   delayed?: boolean; // Explicitly marked as delayed
   delayReason?: DelayReason; // Reason for delay
+  delayedPlayerId?: string; // Which player caused the delay (for tracking)
+  postponed?: boolean; // Match is postponed to later
   pinned?: boolean; // Pinned to court/time (for finals/special matches)
+  playerConfirmations?: Record<string, boolean>; // Player ID -> confirmed at court
   score?: {
     sideA: number;
     sideB: number;
@@ -145,6 +157,9 @@ export interface RosterGroupDTO {
   };
 }
 
+// Withdrawal reason
+export type WithdrawalReason = 'injury' | 'no_show' | 'disqualification' | 'personal' | 'other';
+
 // Player
 export interface PlayerDTO {
   id: string; // Auto-generated UUID
@@ -154,6 +169,9 @@ export interface PlayerDTO {
   availability: AvailabilityWindow[];
   minRestMinutes?: number | null; // If not provided, uses tournament config's defaultRestMinutes
   notes?: string;
+  status?: 'active' | 'withdrawn'; // Player status - defaults to 'active'
+  withdrawalReason?: WithdrawalReason; // Reason if withdrawn
+  withdrawnAt?: string; // Timestamp when withdrawn
 }
 
 export interface AvailabilityWindow {

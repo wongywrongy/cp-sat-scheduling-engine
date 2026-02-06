@@ -143,50 +143,26 @@ export function SolverProgressLog({
   };
 
   return (
-    <div className="flex flex-col h-full gap-2">
-      {/* Solver log - fills available space */}
-      <div className="flex-1 min-h-0 flex flex-col">
-        <div
-          ref={logRef}
-          className="flex-1 overflow-y-auto text-xs font-mono space-y-0.5"
-        >
-          {logs.length === 0 ? (
-            <div className="text-gray-400 italic">Waiting for solver...</div>
-          ) : (
-            logs.map((entry) => (
-              <div key={entry.id} className="flex gap-1">
-                <span className="text-gray-400 flex-shrink-0 text-[10px]">
-                  {new Date(entry.timestamp).toLocaleTimeString('en-US', {
-                    hour12: false,
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                  })}
-                </span>
-                <span className={getEntryColor(entry.type)}>{entry.message}</span>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Violations section (if any) */}
-      {violations.length > 0 && (
-        <div className="flex-shrink-0 border-t border-gray-200 pt-2">
-          <div className="text-xs font-medium text-amber-600 uppercase tracking-wide mb-1">
-            Violations ({violations.length})
+    <div
+      ref={logRef}
+      className="h-full overflow-y-auto text-xs font-mono space-y-0.5"
+    >
+      {logs.length === 0 ? (
+        <div className="text-gray-400 italic">Waiting for solver...</div>
+      ) : (
+        logs.map((entry) => (
+          <div key={entry.id} className="flex gap-1.5">
+            <span className="text-gray-400 flex-shrink-0 text-[10px]">
+              {new Date(entry.timestamp).toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              })}
+            </span>
+            <span className={getEntryColor(entry.type)}>{entry.message}</span>
           </div>
-          <div className="overflow-y-auto max-h-24 text-xs space-y-0.5">
-            {violations.slice(0, 8).map((v, i) => (
-              <div key={i} className="text-amber-600 truncate" title={v.description}>
-                {v.description}
-              </div>
-            ))}
-            {violations.length > 8 && (
-              <div className="text-gray-400 italic">+{violations.length - 8} more</div>
-            )}
-          </div>
-        </div>
+        ))
       )}
     </div>
   );

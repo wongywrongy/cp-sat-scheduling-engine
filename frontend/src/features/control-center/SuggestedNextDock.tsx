@@ -46,7 +46,7 @@ export function SuggestedNextDock({
       return light?.status === 'green';
     })
     .sort((a, b) => a.slotId - b.slotId)
-    .slice(0, 3);
+    .slice(0, 5);
 
   // Check if all matches are finished
   const allFinished = schedule.assignments.every((a) => matchStates[a.matchId]?.status === 'finished');
@@ -63,47 +63,50 @@ export function SuggestedNextDock({
   };
 
   return (
-    <div className="flex-shrink-0 bg-white border-t border-gray-200 px-5 py-2.5 flex items-center gap-4">
+    <div className="flex-shrink-0 bg-white rounded border border-gray-200 px-3 py-2 flex items-center gap-3">
       {/* Label with pulsing dot */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs font-bold text-gray-700 tracking-wide">SUGGESTED NEXT</span>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Suggested</span>
         {greenMatches.length > 0 && (
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
         )}
       </div>
 
-      <div className="w-px h-7 bg-gray-200 flex-shrink-0" />
+      <div className="w-px h-5 bg-gray-200 flex-shrink-0" />
 
       {/* Suggestions or empty state */}
-      <div className="flex gap-2.5 overflow-auto flex-1">
+      <div className="flex gap-2 overflow-auto flex-1">
         {allFinished ? (
-          <div className="text-sm text-gray-500">All matches complete</div>
+          <div className="text-xs text-gray-500">All matches complete</div>
         ) : greenMatches.length === 0 ? (
-          <div className="text-sm text-gray-500">No matches ready to call</div>
+          <div className="text-xs text-gray-500">No matches ready to call</div>
         ) : (
           greenMatches.map((assignment, i) => {
             const match = matchMap.get(assignment.matchId);
             if (!match) return null;
 
             const isSelected = selectedMatchId === assignment.matchId;
-            const isFirst = i === 0;
+            const isPostponed = matchStates[assignment.matchId]?.postponed;
             const matchLabel = getMatchLabel(match);
 
             return (
               <div
                 key={assignment.matchId}
                 onClick={() => onSelectMatch(assignment.matchId)}
-                className={`rounded-lg px-3.5 py-2 cursor-pointer flex-shrink-0 transition-all border ${
-                  isSelected || isFirst
+                className={`rounded px-2.5 py-1.5 cursor-pointer flex-shrink-0 transition-all border ${
+                  isSelected
                     ? 'bg-green-50 border-green-300'
-                    : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                    : isPostponed
+                      ? 'bg-orange-50 border-orange-300'
+                      : 'bg-gray-50 border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="font-bold text-sm text-gray-900">{matchLabel}</span>
-                  <span className="text-xs text-gray-500">C{assignment.courtId}</span>
+                <div className="flex items-center gap-1 mb-0.5">
+                  <span className="font-semibold text-xs text-gray-900">{matchLabel}</span>
+                  <span className="text-[10px] text-gray-500">C{assignment.courtId}</span>
+                  {isPostponed && <span className="text-[9px] text-orange-600">(postponed)</span>}
                 </div>
-                <div className="text-xs text-gray-600 max-w-[240px] truncate">
+                <div className="text-[10px] text-gray-600 max-w-[200px] truncate">
                   {formatPlayers(match)}
                 </div>
               </div>

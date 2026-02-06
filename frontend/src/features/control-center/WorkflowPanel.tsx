@@ -32,6 +32,8 @@ interface WorkflowPanelProps {
   players: PlayerDTO[];
   onSubstitute?: (matchId: string, oldPlayerId: string, newPlayerId: string) => void;
   onRemovePlayer?: (matchId: string, playerId: string) => void;
+  onCascadingStart?: (matchId: string, courtId: number) => void;
+  onUndoStart?: (matchId: string) => void;
 }
 
 function getMatchLabel(match: MatchDTO | undefined): string {
@@ -80,6 +82,7 @@ function InProgressCard({
   isSelected,
   onSelect,
   onUpdateStatus,
+  onUndoStart,
 }: {
   assignment: ScheduleAssignment;
   match: MatchDTO | undefined;
@@ -89,6 +92,7 @@ function InProgressCard({
   isSelected: boolean;
   onSelect: () => void;
   onUpdateStatus: (matchId: string, status: MatchStateDTO['status'], data?: Partial<MatchStateDTO>) => Promise<void>;
+  onUndoStart?: (matchId: string) => void;
 }) {
   const [showScoreDialog, setShowScoreDialog] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -97,6 +101,9 @@ function InProgressCard({
 
   const sideANames = (match.sideA || []).map((id) => playerNames.get(id) || id).join(' & ');
   const sideBNames = (match.sideB || []).map((id) => playerNames.get(id) || id).join(' & ');
+
+  // Use actual court if set, otherwise scheduled
+  const displayCourtId = matchState?.actualCourtId ?? assignment.courtId;
 
   // Scoring format from config
   const useBadmintonScoring = config?.scoringFormat === 'badminton';
@@ -133,11 +140,18 @@ function InProgressCard({
   const handleUndo = async () => {
     setUpdating(true);
     try {
+      // Use onUndoStart to restore original position if available
+      if (onUndoStart) {
+        onUndoStart(assignment.matchId);
+      }
       await onUpdateStatus(assignment.matchId, 'called', { actualStartTime: undefined });
     } finally {
       setUpdating(false);
     }
   };
+
+  // Check if match was moved from original position
+  const wasMoved = matchState?.originalSlotId !== undefined || matchState?.originalCourtId !== undefined;
 
   return (
     <>
@@ -152,7 +166,7 @@ function InProgressCard({
         <div className="flex justify-between items-center mb-0.5">
           <div className="flex items-center gap-1">
             <span className="font-medium text-xs text-gray-700">{getMatchLabel(match)}</span>
-            <span className="text-[10px] text-gray-500">C{assignment.courtId}</span>
+            <span className="text-[10px] text-gray-500">C{displayCourtId}</span>
           </div>
           <div className="flex gap-0.5">
             <button
@@ -166,14 +180,18 @@ function InProgressCard({
               onClick={(e) => { e.stopPropagation(); handleUndo(); }}
               disabled={updating}
               className="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] hover:bg-gray-300 disabled:bg-gray-100"
+              title={wasMoved ? 'Undo and restore to original position' : 'Undo to called status'}
             >
               Undo
             </button>
           </div>
         </div>
         <div className="text-[10px] text-gray-600 truncate">{sideANames} vs {sideBNames}</div>
-        <div className="text-[10px] text-gray-500">
+        <div className="text-[10px] text-gray-500 flex items-center gap-1">
           <ElapsedTimer startTime={matchState?.actualStartTime} />
+          {wasMoved && (
+            <span className="text-[9px] text-orange-500">(moved)</span>
+          )}
         </div>
       </div>
 
@@ -222,7 +240,9 @@ function UpNextCard({
   onConfirmPlayer,
   players,
   onSubstitute,
-  onWithdraw,
+  onRemovePlayer,
+  occupiedCourts,
+  onCascadingStart,
 }: {
   assignment: ScheduleAssignment;
   match: MatchDTO | undefined;
@@ -241,6 +261,7 @@ function UpNextCard({
   onSubstitute?: (matchId: string, oldPlayerId: string, newPlayerId: string) => void;
   onRemovePlayer?: (matchId: string, playerId: string) => void;
   occupiedCourts: number[];
+  onCascadingStart?: (matchId: string, courtId: number) => void;
 }) {
   const [updating, setUpdating] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -315,12 +336,12 @@ function UpNextCard({
   const handleStart = async (courtId: number) => {
     setUpdating(true);
     try {
-      // Only set actualCourtId if different from scheduled
-      const additionalData: Partial<MatchStateDTO> = {};
-      if (courtId !== assignment.courtId) {
-        additionalData.actualCourtId = courtId;
-      }
-      await onUpdateStatus(assignment.matchId, 'started', additionalData);
+      // Handle cascading shifts for conflicting matches
+      // This also moves the starting match to the target court and correct slot
+      onCascadingStart?.(assignment.matchId, courtId);
+
+      // Start the match (court/slot already updated by cascading logic)
+      await onUpdateStatus(assignment.matchId, 'started');
       setShowCourtDialog(false);
     } finally {
       setUpdating(false);
@@ -662,6 +683,8 @@ export function WorkflowPanel({
   players,
   onSubstitute,
   onRemovePlayer,
+  onCascadingStart,
+  onUndoStart,
 }: WorkflowPanelProps) {
   const [activeTab, setActiveTab] = useState<'up_next' | 'finished'>('up_next');
 
@@ -739,6 +762,7 @@ export function WorkflowPanel({
                 isSelected={selectedMatchId === assignment.matchId}
                 onSelect={() => onSelectMatch?.(assignment.matchId)}
                 onUpdateStatus={onUpdateStatus}
+                onUndoStart={onUndoStart}
               />
             ))
           )}
@@ -794,6 +818,7 @@ export function WorkflowPanel({
                   onSubstitute={onSubstitute}
                   onRemovePlayer={onRemovePlayer}
                   occupiedCourts={occupiedCourts}
+                  onCascadingStart={onCascadingStart}
                 />
               ))
             )

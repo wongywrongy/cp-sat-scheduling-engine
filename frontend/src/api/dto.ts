@@ -125,6 +125,8 @@ export interface MatchStateDTO {
   actualStartTime?: string;
   actualEndTime?: string;
   actualCourtId?: number; // Override court if different from scheduled
+  originalSlotId?: number; // Original scheduled slot before being pushed
+  originalCourtId?: number; // Original scheduled court before being pushed
   delayed?: boolean; // Explicitly marked as delayed
   delayReason?: DelayReason; // Reason for delay
   delayedPlayerId?: string; // Which player caused the delay (for tracking)

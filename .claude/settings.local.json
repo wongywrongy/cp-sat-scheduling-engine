@@ -54,7 +54,8 @@
       "Bash(SHELL=/bin/bash /bin/bash -c 'cd \"/Users/kylewong/Documents/Visual Studio/cp-sat-scheduling-engine/frontend\" && ./node_modules/.bin/tsc --noEmit 2>&1 | head -80':*)",
       "Bash(SHELL=/bin/bash /bin/bash -c:*)",
       "Bash(pushd:*)",
-      "Bash(popd:*)"
+      "Bash(popd:*)",
+      "Bash(/Users/kylewong/Documents/Visual\\\\ Studio/cp-sat-scheduling-engine/frontend/node_modules/.bin/tsc:*)"
     ]
   }
 }

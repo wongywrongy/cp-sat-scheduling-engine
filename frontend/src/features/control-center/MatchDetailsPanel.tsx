@@ -85,6 +85,11 @@ export function MatchDetailsPanel({
   const sideBNames = (match.sideB || []).map((id) => playerNames.get(id) || id);
   const allPlayerIds = [...(match.sideA || []), ...(match.sideB || [])];
 
+  // Display court (use actual if set)
+  const actualCourtId = matchState?.actualCourtId;
+  const displayCourtId = actualCourtId ?? assignment.courtId;
+  const courtChanged = actualCourtId !== undefined && actualCourtId !== assignment.courtId;
+
   return (
     <div className="h-full overflow-auto p-2">
       {/* Header */}
@@ -93,7 +98,7 @@ export function MatchDetailsPanel({
           {getMatchLabel(match)}
         </div>
         <div className="text-[10px] text-gray-500">
-          C{assignment.courtId} · {scheduledTime}
+          C{displayCourtId}{courtChanged && ` (sched: C${assignment.courtId})`} · {scheduledTime}
         </div>
       </div>
 

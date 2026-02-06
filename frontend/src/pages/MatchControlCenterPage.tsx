@@ -17,6 +17,9 @@ export function MatchControlCenterPage() {
   const liveTracking = useLiveTracking();
   const liveOps = useLiveOperations();
   const players = useAppStore((state) => state.players);
+  const schedule = useAppStore((state) => state.schedule);
+  const setSchedule = useAppStore((state) => state.setSchedule);
+  const setMatchState = useAppStore((state) => state.setMatchState);
 
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [currentSlot, setCurrentSlot] = useState(0);
@@ -121,6 +124,200 @@ export function MatchControlCenterPage() {
     console.log(`Removed player ${playerId} from match ${matchId}`);
   }, [liveOps.matches, updateMatch]);
 
+  // Handle cascading court shift when starting a match
+  const handleCascadingStart = useCallback((
+    matchId: string,
+    courtId: number
+  ) => {
+    if (!schedule) return;
+
+    // Find the assignment for this match
+    const startingAssignmentIdx = schedule.assignments.findIndex(a => a.matchId === matchId);
+    if (startingAssignmentIdx === -1) return;
+
+    const startingAssignment = schedule.assignments[startingAssignmentIdx];
+    const duration = startingAssignment.durationSlots;
+
+    // Create a working copy of assignments
+    const workingAssignments = schedule.assignments.map(a => ({ ...a }));
+
+    // Find the next available slot on the target court
+    // This is right after the last finished/in-progress match on that court
+    let nextAvailableSlot = 0; // Start from beginning
+
+    for (const a of workingAssignments) {
+      if (a.matchId === matchId) continue;
+      const state = liveOps.matchStates[a.matchId];
+
+      // Only consider matches on the target court
+      if (a.courtId !== courtId) continue;
+
+      // If match is started or finished, we need to start after it ends
+      if (state?.status === 'started' || state?.status === 'finished') {
+        const matchEnd = a.slotId + a.durationSlots;
+        if (matchEnd > nextAvailableSlot) {
+          nextAvailableSlot = matchEnd;
+        }
+      }
+    }
+
+    // Store original position of the starting match
+    const originalSlot = startingAssignment.slotId;
+    const originalCourt = startingAssignment.courtId;
+
+    // Move the starting match to the target court and available slot
+    workingAssignments[startingAssignmentIdx] = {
+      ...startingAssignment,
+      slotId: nextAvailableSlot,
+      courtId: courtId,
+    };
+
+    const startSlot = nextAvailableSlot;
+    const endSlot = startSlot + duration;
+
+    // Store original position in match state
+    const currentStartState = liveOps.matchStates[matchId];
+    setMatchState(matchId, {
+      ...currentStartState,
+      matchId: matchId,
+      status: currentStartState?.status || 'scheduled',
+      originalSlotId: originalSlot,
+      originalCourtId: originalCourt,
+    });
+
+    // Now handle cascading for any conflicts on the target court
+    const processedIds = new Set<string>([matchId]);
+    const shiftsApplied: { matchId: string; fromSlot: number; toSlot: number }[] = [];
+
+    // Function to find and shift conflicts
+    const shiftConflicts = (blockStart: number, blockEnd: number) => {
+      // Get scheduled/called matches on target court
+      const courtMatches = workingAssignments
+        .filter(a => {
+          if (processedIds.has(a.matchId)) return false;
+          const state = liveOps.matchStates[a.matchId];
+          if (state?.status === 'started' || state?.status === 'finished') return false;
+          return a.courtId === courtId;
+        })
+        .sort((a, b) => a.slotId - b.slotId);
+
+      for (const match of courtMatches) {
+        if (processedIds.has(match.matchId)) continue;
+
+        const matchStart = match.slotId;
+        const matchEnd = match.slotId + match.durationSlots;
+
+        // Check if this match overlaps with the block
+        if (matchStart < blockEnd && matchEnd > blockStart) {
+          // Store original position if not already stored
+          const currentState = liveOps.matchStates[match.matchId];
+          if (!currentState?.originalSlotId) {
+            setMatchState(match.matchId, {
+              ...currentState,
+              matchId: match.matchId,
+              status: currentState?.status || 'scheduled',
+              originalSlotId: match.slotId,
+              originalCourtId: match.courtId,
+            });
+          }
+
+          // Shift this match to after the block
+          const oldSlot = match.slotId;
+          match.slotId = blockEnd;
+          shiftsApplied.push({ matchId: match.matchId, fromSlot: oldSlot, toSlot: blockEnd });
+          processedIds.add(match.matchId);
+
+          // Recursively check for new conflicts caused by this shift
+          shiftConflicts(match.slotId, match.slotId + match.durationSlots);
+        }
+      }
+    };
+
+    // Start the cascade from the starting match's time block
+    shiftConflicts(startSlot, endSlot);
+
+    // Update schedule with working assignments
+    setSchedule({
+      ...schedule,
+      assignments: workingAssignments,
+    });
+
+    console.log(`Started match ${matchId} on court ${courtId} at slot ${startSlot}. Shifted ${shiftsApplied.length} matches.`);
+  }, [schedule, liveOps.matchStates, setSchedule, setMatchState]);
+
+  // Handle undo start - restore match to original position
+  const handleUndoStart = useCallback((matchId: string) => {
+    if (!schedule) return;
+
+    const matchState = liveOps.matchStates[matchId];
+
+    // If no original position stored, nothing to restore
+    if (matchState?.originalSlotId === undefined && matchState?.originalCourtId === undefined) {
+      return;
+    }
+
+    // Find the assignment for this match
+    const assignmentIdx = schedule.assignments.findIndex(a => a.matchId === matchId);
+    if (assignmentIdx === -1) return;
+
+    const currentAssignment = schedule.assignments[assignmentIdx];
+
+    // Create a working copy of assignments
+    const workingAssignments = schedule.assignments.map(a => ({ ...a }));
+
+    // Restore this match to its original position
+    const originalSlot = matchState.originalSlotId ?? currentAssignment.slotId;
+    const originalCourt = matchState.originalCourtId ?? currentAssignment.courtId;
+
+    workingAssignments[assignmentIdx] = {
+      ...currentAssignment,
+      slotId: originalSlot,
+      courtId: originalCourt,
+    };
+
+    // Also restore any other matches on the same court that were shifted
+    // (they have originalSlotId/originalCourtId set)
+    for (let i = 0; i < workingAssignments.length; i++) {
+      if (i === assignmentIdx) continue;
+
+      const otherState = liveOps.matchStates[workingAssignments[i].matchId];
+      // Only restore matches that were on the same original court
+      if (otherState?.originalSlotId !== undefined && otherState?.originalCourtId === originalCourt) {
+        workingAssignments[i] = {
+          ...workingAssignments[i],
+          slotId: otherState.originalSlotId,
+          courtId: otherState.originalCourtId ?? workingAssignments[i].courtId,
+        };
+
+        // Clear the original position from the match state
+        setMatchState(workingAssignments[i].matchId, {
+          ...otherState,
+          matchId: workingAssignments[i].matchId,
+          status: otherState.status,
+          originalSlotId: undefined,
+          originalCourtId: undefined,
+        });
+      }
+    }
+
+    // Clear the original position from this match's state
+    setMatchState(matchId, {
+      ...matchState,
+      matchId: matchId,
+      status: matchState.status,
+      originalSlotId: undefined,
+      originalCourtId: undefined,
+    });
+
+    // Update schedule
+    setSchedule({
+      ...schedule,
+      assignments: workingAssignments,
+    });
+
+    console.log(`Undid match ${matchId}, restored to slot ${originalSlot} court ${originalCourt}`);
+  }, [schedule, liveOps.matchStates, setSchedule, setMatchState]);
+
   // No schedule state
   if (!liveTracking.schedule) {
     return (
@@ -214,6 +411,8 @@ export function MatchControlCenterPage() {
               players={players}
               onSubstitute={handleSubstitute}
               onRemovePlayer={handleRemovePlayer}
+              onCascadingStart={handleCascadingStart}
+              onUndoStart={handleUndoStart}
             />
           </div>
         </div>

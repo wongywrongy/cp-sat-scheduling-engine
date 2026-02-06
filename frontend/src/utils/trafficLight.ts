@@ -14,7 +14,7 @@ import type {
   ScheduleAssignment,
   TournamentConfig,
 } from '../api/dto';
-import { timeToMinutes } from './timeUtils';
+import { timeToSlot } from './timeUtils';
 
 export type TrafficLight = 'green' | 'yellow' | 'red';
 
@@ -47,25 +47,7 @@ export function getMatchPlayerIds(match: MatchDTO): string[] {
   return playerIds;
 }
 
-/**
- * Convert HH:mm time to slot number
- */
-function timeToSlot(time: string, config: TournamentConfig): number {
-  const [startHours, startMins] = config.dayStart.split(':').map(Number);
-  const [hours, mins] = time.split(':').map(Number);
-
-  const startMinutes = startHours * 60 + startMins;
-  const endMinutes = timeToMinutes(config.dayEnd);
-  let timeMinutes = hours * 60 + mins;
-
-  // Handle overnight schedules
-  const isOvernight = endMinutes <= startMinutes;
-  if (isOvernight && timeMinutes < startMinutes) {
-    timeMinutes += 24 * 60;
-  }
-
-  return Math.floor((timeMinutes - startMinutes) / config.intervalMinutes);
-}
+// timeToSlot imported from timeUtils.ts
 
 /**
  * Check if a player is actively playing or committed to another match

@@ -171,6 +171,33 @@ export function getAdjustedEndMinutes(config: TournamentConfig): number {
 }
 
 /**
+ * Convert HH:mm time string to slot number
+ * Handles overnight schedules (e.g., 10pm to 6am)
+ */
+export function timeToSlot(time: string, config: TournamentConfig): number {
+  const startMinutes = timeToMinutes(config.dayStart);
+  const endMinutes = timeToMinutes(config.dayEnd);
+  let timeMinutes = timeToMinutes(time);
+
+  // Check if this is an overnight schedule
+  const isOvernight = endMinutes <= startMinutes;
+
+  // If overnight and time is before start (e.g., 2am when start is 10pm),
+  // add 24 hours to treat it as part of the overnight period
+  if (isOvernight && timeMinutes < startMinutes) {
+    timeMinutes += 24 * 60;
+  }
+
+  return Math.floor((timeMinutes - startMinutes) / config.intervalMinutes);
+}
+
+/**
+ * Convert slot number to HH:mm time string
+ * Alias for formatSlotTime for API consistency
+ */
+export const slotToTime = formatSlotTime;
+
+/**
  * Get status badge color
  */
 export function getStatusColor(status: MatchStateDTO['status']): string {

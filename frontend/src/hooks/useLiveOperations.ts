@@ -5,7 +5,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { apiClient } from '../api/client';
-import type { MatchStateDTO, ScheduleAssignment, TournamentConfig } from '../api/dto';
+import type { MatchStateDTO } from '../api/dto';
+import { getMatchPlayerIds as getPlayerIdsFromMatch } from '../utils/trafficLight';
+import { timeToSlot, slotToTime } from '../utils/timeUtils';
 
 export interface ImpactAnalysis {
   matchId: string;
@@ -16,46 +18,6 @@ export interface ImpactAnalysis {
   directlyImpacted: string[]; // Match IDs that share players
   cascadeImpacted: string[]; // Matches impacted by the directly impacted
   suggestedAction: 'none' | 'wait' | 'reoptimize' | 'manual_adjust';
-}
-
-/**
- * Convert HH:mm time string to slot number
- * Handles overnight schedules (e.g., 10pm to 6am)
- */
-function timeToSlot(time: string, config: TournamentConfig): number {
-  const [startHours, startMins] = config.dayStart.split(':').map(Number);
-  const [endHours, endMins] = config.dayEnd.split(':').map(Number);
-  const [hours, mins] = time.split(':').map(Number);
-
-  const startMinutes = startHours * 60 + startMins;
-  const endMinutes = endHours * 60 + endMins;
-  let timeMinutes = hours * 60 + mins;
-
-  // Check if this is an overnight schedule
-  const isOvernight = endMinutes <= startMinutes;
-
-  // If overnight and time is before start (e.g., 2am when start is 10pm),
-  // add 24 hours to treat it as part of the overnight period
-  if (isOvernight && timeMinutes < startMinutes) {
-    timeMinutes += 24 * 60;
-  }
-
-  return Math.floor((timeMinutes - startMinutes) / config.intervalMinutes);
-}
-
-/**
- * Convert slot number to HH:mm time string
- * Handles overnight schedules by wrapping hours past midnight
- */
-function slotToTime(slot: number, config: TournamentConfig): string {
-  const [startHours, startMins] = config.dayStart.split(':').map(Number);
-  const startMinutes = startHours * 60 + startMins;
-  const slotMinutes = startMinutes + slot * config.intervalMinutes;
-  // Wrap around midnight (1440 minutes = 24 hours)
-  const normalizedMinutes = slotMinutes % (24 * 60);
-  const hours = Math.floor(normalizedMinutes / 60);
-  const mins = normalizedMinutes % 60;
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
 export function useLiveOperations() {
@@ -85,15 +47,12 @@ export function useLiveOperations() {
     });
   }, [schedule, matchStates, config]);
 
-  // Get all player IDs from a match
+  // Get all player IDs from a match (by matchId)
+  // Uses shared getPlayerIdsFromMatch utility internally
   const getMatchPlayerIds = useCallback((matchId: string): string[] => {
     const match = matches.find((m) => m.id === matchId);
     if (!match) return [];
-    const playerIds: string[] = [];
-    if (match.sideA) playerIds.push(...match.sideA);
-    if (match.sideB) playerIds.push(...match.sideB);
-    if (match.sideC) playerIds.push(...match.sideC);
-    return playerIds;
+    return getPlayerIdsFromMatch(match);
   }, [matches]);
 
   // Calculate impacted matches (matches affected by overruns)

@@ -3,10 +3,12 @@
  * Left: In Progress (~320px) with elapsed timer
  * Center: Tabbed Up Next / Finished with colored left borders
  */
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { ScheduleAssignment, MatchDTO, MatchStateDTO, TournamentConfig, SetScore, PlayerDTO } from '../../api/dto';
 import type { TrafficLightResult } from '../../utils/trafficLight';
 import { formatSlotTime } from '../../utils/timeUtils';
+import { getMatchLabel } from '../../utils/matchUtils';
+import { ElapsedTimer } from '../../components/common/ElapsedTimer';
 import { MatchScoreDialog } from '../tracking/MatchScoreDialog';
 import { BadmintonScoreDialog } from '../tracking/BadmintonScoreDialog';
 import { EditMatchDialog } from './EditMatchDialog';
@@ -36,41 +38,7 @@ interface WorkflowPanelProps {
   onUndoStart?: (matchId: string) => void;
 }
 
-function getMatchLabel(match: MatchDTO | undefined): string {
-  if (!match) return '?';
-  if (match.eventRank) return match.eventRank;
-  if (match.matchNumber) return `M${match.matchNumber}`;
-  return match.id.slice(0, 6);
-}
-
-// Elapsed timer component
-function ElapsedTimer({ startTime }: { startTime: string | undefined }) {
-  const [elapsed, setElapsed] = useState('0:00');
-
-  useEffect(() => {
-    if (!startTime) {
-      setElapsed('0:00');
-      return;
-    }
-
-    const calculateElapsed = () => {
-      const [hours, minutes] = startTime.split(':').map(Number);
-      const start = new Date();
-      start.setHours(hours, minutes, 0, 0);
-      const now = new Date();
-      const diffMs = now.getTime() - start.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffSecs = Math.floor((diffMs % 60000) / 1000);
-      return `${diffMins}:${diffSecs.toString().padStart(2, '0')}`;
-    };
-
-    setElapsed(calculateElapsed());
-    const interval = setInterval(() => setElapsed(calculateElapsed()), 1000);
-    return () => clearInterval(interval);
-  }, [startTime]);
-
-  return <span className="tabular-nums">{elapsed}</span>;
-}
+// getMatchLabel and ElapsedTimer imported from shared utilities
 
 // In Progress Card with Score Dialog
 function InProgressCard({

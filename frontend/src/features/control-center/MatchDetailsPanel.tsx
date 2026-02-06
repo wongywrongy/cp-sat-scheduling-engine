@@ -1,10 +1,12 @@
 /**
  * Match Details Panel - Shows selected match details
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import type { ImpactAnalysis } from '../../hooks/useLiveOperations';
 import type { MatchDTO, MatchStateDTO, ScheduleAssignment } from '../../api/dto';
 import type { TrafficLightResult } from '../../utils/trafficLight';
+import { getMatchLabel } from '../../utils/matchUtils';
+import { ElapsedTimer } from '../../components/common/ElapsedTimer';
 
 interface MatchDetailsPanelProps {
   assignment?: ScheduleAssignment;
@@ -16,42 +18,6 @@ interface MatchDetailsPanelProps {
   playerNames: Map<string, string>;
   slotToTime: (slot: number) => string;
   onSelectMatch?: (matchId: string) => void;
-}
-
-function getMatchLabel(match: MatchDTO | undefined, fallbackId?: string): string {
-  if (!match) return fallbackId?.slice(0, 6) || '?';
-  if (match.eventRank) return match.eventRank;
-  if (match.matchNumber) return `M${match.matchNumber}`;
-  return match.id.slice(0, 6);
-}
-
-// Elapsed timer component
-function ElapsedTimer({ startTime }: { startTime: string | undefined }) {
-  const [elapsed, setElapsed] = useState('0:00');
-
-  useEffect(() => {
-    if (!startTime) {
-      setElapsed('0:00');
-      return;
-    }
-
-    const calculateElapsed = () => {
-      const [hours, minutes] = startTime.split(':').map(Number);
-      const start = new Date();
-      start.setHours(hours, minutes, 0, 0);
-      const now = new Date();
-      const diffMs = now.getTime() - start.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffSecs = Math.floor((diffMs % 60000) / 1000);
-      return `${diffMins}:${diffSecs.toString().padStart(2, '0')}`;
-    };
-
-    setElapsed(calculateElapsed());
-    const interval = setInterval(() => setElapsed(calculateElapsed()), 1000);
-    return () => clearInterval(interval);
-  }, [startTime]);
-
-  return <span className="font-semibold tabular-nums">{elapsed}</span>;
 }
 
 export function MatchDetailsPanel({
@@ -168,7 +134,7 @@ export function MatchDetailsPanel({
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">Elapsed</span>
-            <ElapsedTimer startTime={matchState?.actualStartTime} />
+            <ElapsedTimer startTime={matchState?.actualStartTime} className="font-semibold tabular-nums" />
           </div>
         </div>
       )}

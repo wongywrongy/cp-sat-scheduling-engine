@@ -19,12 +19,12 @@ build/
 *.swp
 *.swo
 .cursor/
+.claude/
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
-.claude/
 
 # Docker
 .docker/

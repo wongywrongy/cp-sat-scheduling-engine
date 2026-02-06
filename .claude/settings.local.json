@@ -65,7 +65,8 @@
       "Bash(/bin/bash -c 'cd \"\"/Users/kylewong/Documents/Visual Studio/cp-sat-scheduling-engine/frontend\"\" && npx tsc -b 2>&1')",
       "Bash(/bin/bash -c 'cd \"\"/Users/kylewong/Documents/Visual Studio/cp-sat-scheduling-engine/frontend\"\" && npx tsc --noEmit 2>&1 | head -100')",
       "Bash(/bin/bash -c 'cd \"\"/Users/kylewong/Documents/Visual Studio/cp-sat-scheduling-engine/frontend\"\" && npx tsc -b 2>&1 | head -30')",
-      "Bash(/bin/bash -c 'cd \"\"/Users/kylewong/Documents/Visual Studio/cp-sat-scheduling-engine\"\" && docker-compose down && docker-compose up -d 2>&1')"
+      "Bash(/bin/bash -c 'cd \"\"/Users/kylewong/Documents/Visual Studio/cp-sat-scheduling-engine\"\" && docker-compose down && docker-compose up -d 2>&1')",
+      "Bash(git rm:*)"
     ]
   }
 }

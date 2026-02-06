@@ -3,10 +3,12 @@
  */
 import { useMemo } from 'react';
 import type { ImpactAnalysis } from '../../hooks/useLiveOperations';
-import type { MatchDTO, MatchStateDTO, ScheduleAssignment } from '../../api/dto';
+import type { MatchDTO, MatchStateDTO, ScheduleAssignment, ScheduleDTO, PlayerDTO, TournamentConfig } from '../../api/dto';
 import type { TrafficLightResult } from '../../utils/trafficLight';
 import { getMatchLabel } from '../../utils/matchUtils';
+import { getMatchPlayerIds } from '../../utils/trafficLight';
 import { ElapsedTimer } from '../../components/common/ElapsedTimer';
+import { timeToSlot } from '../../utils/timeUtils';
 
 interface MatchDetailsPanelProps {
   assignment?: ScheduleAssignment;
@@ -18,6 +20,59 @@ interface MatchDetailsPanelProps {
   playerNames: Map<string, string>;
   slotToTime: (slot: number) => string;
   onSelectMatch?: (matchId: string) => void;
+  schedule?: ScheduleDTO | null;
+  matchStates?: Record<string, MatchStateDTO>;
+  players?: PlayerDTO[];
+  config?: TournamentConfig | null;
+  currentSlot?: number;
+}
+
+/**
+ * Calculate rest time since a player's last finished match
+ */
+function getPlayerRestTime(
+  playerId: string,
+  matchStates: Record<string, MatchStateDTO>,
+  matches: MatchDTO[],
+  schedule: ScheduleDTO,
+  config: TournamentConfig,
+  currentSlot: number,
+  excludeMatchId?: string
+): { restSlots: number; restMinutes: number; lastMatchLabel?: string } | null {
+  let latestEnd = -1;
+  let lastMatchLabel: string | undefined;
+
+  for (const m of matches) {
+    if (excludeMatchId && m.id === excludeMatchId) continue;
+
+    const state = matchStates[m.id];
+    if (state?.status !== 'finished') continue;
+
+    const playerIds = getMatchPlayerIds(m);
+    if (!playerIds.includes(playerId)) continue;
+
+    const assignment = schedule.assignments.find((a) => a.matchId === m.id);
+    if (!assignment) continue;
+
+    let endSlot: number;
+    if (state.actualEndTime) {
+      endSlot = timeToSlot(state.actualEndTime, config);
+    } else {
+      endSlot = assignment.slotId + assignment.durationSlots;
+    }
+
+    if (endSlot > latestEnd) {
+      latestEnd = endSlot;
+      lastMatchLabel = m.eventRank || `M${m.matchNumber || '?'}`;
+    }
+  }
+
+  if (latestEnd < 0) return null;
+
+  const restSlots = currentSlot - latestEnd;
+  const restMinutes = restSlots * config.intervalMinutes;
+
+  return { restSlots, restMinutes, lastMatchLabel };
 }
 
 export function MatchDetailsPanel({
@@ -30,8 +85,34 @@ export function MatchDetailsPanel({
   playerNames,
   slotToTime,
   onSelectMatch,
+  schedule,
+  matchStates,
+  players,
+  config,
+  currentSlot,
 }: MatchDetailsPanelProps) {
   const matchMap = useMemo(() => new Map(matches.map((m) => [m.id, m])), [matches]);
+
+  // Calculate rest times for all players in the match
+  const playerRestTimes = useMemo(() => {
+    const restMap = new Map<string, { restSlots: number; restMinutes: number; lastMatchLabel?: string } | null>();
+    if (!match || !schedule || !matchStates || !config || currentSlot === undefined) return restMap;
+
+    const allPlayerIds = [...(match.sideA || []), ...(match.sideB || [])];
+    for (const playerId of allPlayerIds) {
+      const restTime = getPlayerRestTime(
+        playerId,
+        matchStates,
+        matches,
+        schedule,
+        config,
+        currentSlot,
+        match.id
+      );
+      restMap.set(playerId, restTime);
+    }
+    return restMap;
+  }, [match, matches, schedule, matchStates, config, currentSlot]);
 
   // Empty state
   if (!match || !assignment) {
@@ -46,9 +127,7 @@ export function MatchDetailsPanel({
   const scheduledTime = slotToTime(assignment.slotId);
   const light = trafficLight?.status || 'green';
 
-  // Get player names
-  const sideANames = (match.sideA || []).map((id) => playerNames.get(id) || id);
-  const sideBNames = (match.sideB || []).map((id) => playerNames.get(id) || id);
+  // Get all player IDs for impact analysis
   const allPlayerIds = [...(match.sideA || []), ...(match.sideB || [])];
 
   // Display court (use actual if set)
@@ -116,13 +195,43 @@ export function MatchDetailsPanel({
           Players
         </div>
         <div className="text-xs text-gray-700 space-y-0.5">
-          {sideANames.map((name, i) => (
-            <div key={i}>{name}</div>
-          ))}
+          {(match.sideA || []).map((playerId, i) => {
+            const name = playerNames.get(playerId) || playerId;
+            const restInfo = playerRestTimes.get(playerId);
+            return (
+              <div key={i} className="flex items-center justify-between gap-1">
+                <span>{name}</span>
+                {restInfo ? (
+                  <span className="text-[9px] text-gray-700" title={`Since ${restInfo.lastMatchLabel || 'last match'}`}>
+                    {restInfo.restMinutes >= 60
+                      ? `${Math.floor(restInfo.restMinutes / 60)}h${restInfo.restMinutes % 60 > 0 ? ` ${restInfo.restMinutes % 60}m` : ''}`
+                      : `${restInfo.restMinutes}m`} rest
+                  </span>
+                ) : (
+                  <span className="text-[9px] text-gray-400">1st match</span>
+                )}
+              </div>
+            );
+          })}
           <div className="text-[10px] text-gray-400">vs</div>
-          {sideBNames.map((name, i) => (
-            <div key={i}>{name}</div>
-          ))}
+          {(match.sideB || []).map((playerId, i) => {
+            const name = playerNames.get(playerId) || playerId;
+            const restInfo = playerRestTimes.get(playerId);
+            return (
+              <div key={i} className="flex items-center justify-between gap-1">
+                <span>{name}</span>
+                {restInfo ? (
+                  <span className="text-[9px] text-gray-700" title={`Since ${restInfo.lastMatchLabel || 'last match'}`}>
+                    {restInfo.restMinutes >= 60
+                      ? `${Math.floor(restInfo.restMinutes / 60)}h${restInfo.restMinutes % 60 > 0 ? ` ${restInfo.restMinutes % 60}m` : ''}`
+                      : `${restInfo.restMinutes}m`} rest
+                  </span>
+                ) : (
+                  <span className="text-[9px] text-gray-400">1st match</span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

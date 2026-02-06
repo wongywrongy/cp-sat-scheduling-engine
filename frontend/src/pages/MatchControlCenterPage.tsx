@@ -434,6 +434,11 @@ export function MatchControlCenterPage() {
             playerNames={playerNames}
             slotToTime={liveOps.slotToTime}
             onSelectMatch={setSelectedMatchId}
+            schedule={liveOps.schedule}
+            matchStates={liveOps.matchStates}
+            players={players}
+            config={liveOps.config}
+            currentSlot={currentSlot}
           />
         </div>
       </div>

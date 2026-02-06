@@ -136,18 +136,18 @@ function InProgressCard({
             <span className="font-medium text-xs text-gray-700">{getMatchLabel(match)}</span>
             <span className="text-[10px] text-gray-500">C{displayCourtId}</span>
           </div>
-          <div className="flex gap-0.5">
+          <div className="flex gap-1">
             <button
               onClick={(e) => { e.stopPropagation(); setShowScoreDialog(true); }}
               disabled={updating}
-              className="px-1.5 py-0.5 bg-purple-600 text-white rounded text-[10px] font-medium hover:bg-purple-700 disabled:bg-gray-400"
+              className="px-2.5 py-1 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700 disabled:bg-gray-400"
             >
               Finish
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleUndo(); }}
               disabled={updating}
-              className="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] hover:bg-gray-300 disabled:bg-gray-100"
+              className="px-2.5 py-1 bg-gray-200 text-gray-600 rounded text-xs hover:bg-gray-300 disabled:bg-gray-100"
               title={wasMoved ? 'Undo and restore to original position' : 'Undo to called status'}
             >
               Undo
@@ -364,13 +364,13 @@ function UpNextCard({
             {matchState?.postponed && <span className="text-[9px] text-orange-600 font-medium">(postponed)</span>}
             {isLate && !matchState?.postponed && <span className="text-[9px] text-yellow-600 font-medium">(late)</span>}
           </div>
-          <div className="flex gap-0.5">
+          <div className="flex gap-1">
             {isCalled ? (
               <>
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowCourtDialog(true); }}
                   disabled={updating || !allPlayersConfirmed}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                  className={`px-2.5 py-1 rounded text-xs font-medium ${
                     allPlayersConfirmed
                       ? 'bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -382,7 +382,7 @@ function UpNextCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); handleUndo(); }}
                   disabled={updating}
-                  className="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] hover:bg-gray-300 disabled:bg-gray-100"
+                  className="px-2.5 py-1 bg-gray-200 text-gray-600 rounded text-xs hover:bg-gray-300 disabled:bg-gray-100"
                 >
                   Undo
                 </button>
@@ -392,7 +392,7 @@ function UpNextCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); handleCall(); }}
                   disabled={updating || light !== 'green'}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                  className={`px-2.5 py-1 rounded text-xs font-medium ${
                     light === 'green'
                       ? 'bg-gray-700 text-white hover:bg-gray-800 disabled:bg-gray-400'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -403,7 +403,7 @@ function UpNextCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); handlePostpone(); }}
                   disabled={updating}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                  className={`px-2 py-1 rounded text-xs font-medium ${
                     matchState?.postponed
                       ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                       : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
@@ -414,7 +414,7 @@ function UpNextCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowEditDialog(true); }}
                   disabled={updating}
-                  className="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] hover:bg-gray-300 disabled:bg-gray-100"
+                  className="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs hover:bg-gray-300 disabled:bg-gray-100"
                 >
                   Edit
                 </button>
@@ -424,8 +424,8 @@ function UpNextCard({
         </div>
         {/* Player names - clickable for check-in when called */}
         {isCalled && onConfirmPlayer ? (
-          <div className="flex items-center gap-1 flex-wrap text-[10px]">
-            <span className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1.5 flex-wrap text-xs mt-1">
+            <span className="flex items-center gap-1">
               {sideAPlayers.map((p, i) => {
                 const isConfirmed = confirmations[p.id] || false;
                 return (
@@ -434,17 +434,17 @@ function UpNextCard({
                     <button
                       onClick={(e) => { e.stopPropagation(); handleConfirmPlayer(p.id); }}
                       disabled={updating}
-                      className={`px-1 py-0.5 rounded transition-colors ${
+                      className={`px-2 py-1 rounded font-medium transition-colors ${
                         isConfirmed
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-green-100 text-green-700 border border-green-300'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
                       }`}
                       title={isConfirmed ? `${p.name} confirmed` : `Click to confirm ${p.name}`}
                     >
                       {isConfirmed ? '✓ ' : ''}{p.name}
                     </button>
                     {p.delayCount > 0 && (
-                      <span className="ml-0.5 px-0.5 bg-yellow-100 text-yellow-700 rounded text-[8px] font-medium" title={`${p.delayCount} delay(s)`}>
+                      <span className="ml-0.5 px-1 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[9px] font-medium" title={`${p.delayCount} delay(s)`}>
                         {p.delayCount}
                       </span>
                     )}
@@ -452,8 +452,8 @@ function UpNextCard({
                 );
               })}
             </span>
-            <span className="text-gray-400">vs</span>
-            <span className="flex items-center gap-0.5">
+            <span className="text-gray-400 font-medium">vs</span>
+            <span className="flex items-center gap-1">
               {sideBPlayers.map((p, i) => {
                 const isConfirmed = confirmations[p.id] || false;
                 return (
@@ -462,17 +462,17 @@ function UpNextCard({
                     <button
                       onClick={(e) => { e.stopPropagation(); handleConfirmPlayer(p.id); }}
                       disabled={updating}
-                      className={`px-1 py-0.5 rounded transition-colors ${
+                      className={`px-2 py-1 rounded font-medium transition-colors ${
                         isConfirmed
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-green-100 text-green-700 border border-green-300'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
                       }`}
                       title={isConfirmed ? `${p.name} confirmed` : `Click to confirm ${p.name}`}
                     >
                       {isConfirmed ? '✓ ' : ''}{p.name}
                     </button>
                     {p.delayCount > 0 && (
-                      <span className="ml-0.5 px-0.5 bg-yellow-100 text-yellow-700 rounded text-[8px] font-medium" title={`${p.delayCount} delay(s)`}>
+                      <span className="ml-0.5 px-1 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[9px] font-medium" title={`${p.delayCount} delay(s)`}>
                         {p.delayCount}
                       </span>
                     )}
@@ -616,7 +616,7 @@ function FinishedCard({
           <span className="font-medium text-xs text-gray-500">{getMatchLabel(match)}</span>
           <span className="text-[10px] text-gray-400">C{assignment.courtId}</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {score && (
             <span className="font-medium text-xs text-purple-600">
               {score.sideA}-{score.sideB}
@@ -625,7 +625,7 @@ function FinishedCard({
           <button
             onClick={(e) => { e.stopPropagation(); handleUndo(); }}
             disabled={updating}
-            className="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] hover:bg-gray-300 disabled:bg-gray-100"
+            className="px-2.5 py-1 bg-gray-200 text-gray-600 rounded text-xs hover:bg-gray-300 disabled:bg-gray-100"
           >
             Undo
           </button>
